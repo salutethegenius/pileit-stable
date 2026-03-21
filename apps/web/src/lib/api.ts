@@ -1,12 +1,36 @@
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "http://127.0.0.1:8000";
+/** Same-origin proxy path (see next.config.mjs `rewrites`). */
+const API_PROXY_PREFIX = "/pileit-data";
+
+function envApiUrl(): string {
+  return (
+    process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "").trim() ||
+    process.env.API_URL?.replace(/\/$/, "").trim() ||
+    ""
+  );
+}
+
+/**
+ * Base URL for browser `fetch` to the FastAPI backend.
+ * - Local dev: `NEXT_PUBLIC_API_URL` or `http://127.0.0.1:8000`
+ * - Production (Vercel): if `NEXT_PUBLIC_API_URL` is unset, uses
+ *   `https://<your-domain>/pileit-data` so requests hit Next rewrites → Railway.
+ *   Set `API_URL` (server) on Vercel to your API origin; optional `NEXT_PUBLIC_API_URL` overrides.
+ */
+export function getApiBase(): string {
+  const fromEnv = envApiUrl();
+  if (typeof window === "undefined") {
+    return fromEnv || "http://127.0.0.1:8000";
+  }
+  if (fromEnv) return fromEnv;
+  const { hostname, origin } = window.location;
+  if (hostname !== "localhost" && hostname !== "127.0.0.1") {
+    return `${origin}${API_PROXY_PREFIX}`;
+  }
+  return "http://127.0.0.1:8000";
+}
 
 const ACCESS_KEY = "pileit_access_token";
 const REFRESH_KEY = "pileit_refresh_token";
-
-export function getApiBase() {
-  return API_BASE;
-}
 
 export class ApiError extends Error {
   constructor(
@@ -37,7 +61,8 @@ async function postJsonRefresh(): Promise<{ access_token: string; refresh_token:
   if (typeof window === "undefined") return null;
   const refresh = localStorage.getItem(REFRESH_KEY);
   if (!refresh) return null;
-  const res = await fetch(`${API_BASE}/auth/refresh`, {
+  const base = getApiBase();
+  const res = await fetch(`${base}/auth/refresh`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ refresh_token: refresh }),
@@ -94,7 +119,8 @@ export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promis
   if (accessToken) {
     headers.set("Authorization", `Bearer ${accessToken}`);
   }
-  const res = await fetch(`${API_BASE}${path}`, {
+  const base = getApiBase();
+  const res = await fetch(`${base}${path}`, {
     ...rest,
     headers,
   });
