@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from os.path import isabs
 
@@ -47,6 +48,11 @@ class Settings(BaseSettings):
         # Heroku / Railway-style URLs use postgres://; SQLAlchemy expects postgresql://
         if u.startswith("postgres://"):
             u = "postgresql://" + u[len("postgres://") :]
+            self.database_url = u
+        # Railway Postgres expects TLS; without sslmode, connections can hang until timeout.
+        if u.startswith("postgresql") and os.getenv("RAILWAY_ENVIRONMENT") and "sslmode=" not in u:
+            sep = "&" if "?" in u else "?"
+            u = f"{u}{sep}sslmode=require"
             self.database_url = u
         if not u.lower().startswith("sqlite:"):
             return self

@@ -8,11 +8,20 @@ class Base(DeclarativeBase):
     pass
 
 
-connect_args = {}
-if settings.database_url.startswith("sqlite"):
-    connect_args = {"check_same_thread": False}
+def _engine_connect_args(url: str) -> dict:
+    if url.startswith("sqlite"):
+        return {"check_same_thread": False}
+    if url.startswith("postgresql"):
+        # Fail fast instead of hanging the process (Railway healthcheck / import-time create_all).
+        return {"connect_timeout": 15}
+    return {}
 
-engine = create_engine(settings.database_url, connect_args=connect_args)
+
+engine = create_engine(
+    settings.database_url,
+    connect_args=_engine_connect_args(settings.database_url),
+    pool_pre_ping=True,
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 

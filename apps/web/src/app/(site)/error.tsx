@@ -13,17 +13,26 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error(error);
+    if (process.env.NODE_ENV === "development") {
+      console.error(error);
+    }
   }, [error]);
+
+  const isDev = process.env.NODE_ENV === "development";
 
   return (
     <Box sx={{ p: 4, textAlign: "center" }}>
-      <Typography variant="h5" gutterBottom>
+      <Typography component="h1" variant="h5" gutterBottom>
         Something went wrong
       </Typography>
       <Typography color="text.secondary" sx={{ mb: 2 }}>
-        {error.message}
+        {isDev ? error.message : "Please try again. If the problem continues, contact support."}
       </Typography>
+      {isDev && error.digest ? (
+        <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
+          {error.digest}
+        </Typography>
+      ) : null}
       <Button variant="contained" color="primary" onClick={() => reset()}>
         Try again
       </Button>

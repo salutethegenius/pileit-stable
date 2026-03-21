@@ -51,7 +51,10 @@ export default function PileCommentCard({
       }}
     >
       <Stack direction="row" spacing={1.5} alignItems="flex-start">
-        <Avatar sx={{ bgcolor: hue, width: 36, height: 36, fontSize: 14 }}>
+        <Avatar
+          sx={{ bgcolor: hue, width: 36, height: 36, fontSize: 14 }}
+          alt={`${c.user_display_name} avatar`}
+        >
           {initials(c.user_display_name)}
         </Avatar>
         <Box flex={1}>

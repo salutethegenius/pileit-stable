@@ -70,7 +70,7 @@ function LoginForm() {
         <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
           <PileItLockup markSize={48} textSize={32} />
         </Box>
-        <Typography variant="h5" fontStyle="italic" fontWeight={800} gutterBottom>
+        <Typography component="h1" variant="h5" fontStyle="italic" fontWeight={800} gutterBottom>
           Log In
         </Typography>
         <form onSubmit={(e) => void submit(e)}>

@@ -143,11 +143,14 @@ export default function DetailModal() {
         </Box>
       </Box>
       <Box sx={{ px: { xs: 2, md: 4 }, py: 3 }}>
-        <Typography variant="h4" sx={{ mb: 2 }}>
+        <Typography component="h2" variant="h4" sx={{ mb: 2 }}>
           {detailVideo.title}
         </Typography>
         <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap" sx={{ mb: 2 }}>
-          <Avatar src={avatarSrc} alt="" />
+          <Avatar
+            src={avatarSrc}
+            alt={`${detailVideo.creator.displayName} avatar`}
+          />
           <Box>
             <Stack direction="row" alignItems="center" spacing={0.5} flexWrap="wrap">
               <Typography fontWeight={700}>{detailVideo.creator.displayName}</Typography>

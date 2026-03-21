@@ -83,6 +83,7 @@ export default function HeroBanner({ slides }: { slides: Slide[] }) {
           }}
         />
         <Typography
+          component="h1"
           variant="h3"
           sx={{
             fontSize: { xs: 36, md: 56 },
@@ -141,6 +142,7 @@ export default function HeroBanner({ slides }: { slides: Slide[] }) {
                 ? IMG.avatar(video.creator.avatarUrl)
                 : undefined
             }
+            alt={`${video.creator.displayName} avatar`}
             sx={{ width: 48, height: 48 }}
           />
           <Box>

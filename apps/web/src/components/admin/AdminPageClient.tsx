@@ -333,7 +333,7 @@ export default function AdminPageClient() {
 
   return (
     <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1200, mx: "auto" }}>
-      <Typography variant="h4" fontStyle="italic" fontWeight={800} gutterBottom>
+      <Typography component="h1" variant="h4" fontStyle="italic" fontWeight={800} gutterBottom>
         Admin
       </Typography>
       {loadError && (
@@ -365,7 +365,7 @@ export default function AdminPageClient() {
         </Stack>
       )}
 
-      <Typography variant="h6" sx={{ mt: 3, mb: 1 }}>
+      <Typography component="h2" variant="h6" sx={{ mt: 3, mb: 1 }}>
         Creator applications
       </Typography>
       <Table size="small" sx={{ mb: 4 }}>
@@ -430,7 +430,7 @@ export default function AdminPageClient() {
         </TableBody>
       </Table>
 
-      <Typography variant="h6" sx={{ mt: 3, mb: 1 }}>
+      <Typography component="h2" variant="h6" sx={{ mt: 3, mb: 1 }}>
         Monetization / KYC (pending review)
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
@@ -486,7 +486,7 @@ export default function AdminPageClient() {
         </TableBody>
       </Table>
 
-      <Typography variant="h6" sx={{ mt: 3, mb: 1 }}>
+      <Typography component="h2" variant="h6" sx={{ mt: 3, mb: 1 }}>
         Creators
       </Typography>
       <Table size="small" sx={{ mb: 4 }}>
@@ -540,7 +540,7 @@ export default function AdminPageClient() {
         </TableBody>
       </Table>
 
-      <Typography variant="h6" sx={{ mb: 1 }}>
+      <Typography component="h2" variant="h6" sx={{ mb: 1 }}>
         Content moderation
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
@@ -644,7 +644,7 @@ export default function AdminPageClient() {
         </TableBody>
       </Table>
 
-      <Typography variant="h6" sx={{ mb: 1 }}>
+      <Typography component="h2" variant="h6" sx={{ mb: 1 }}>
         Users
       </Typography>
       <Table size="small">

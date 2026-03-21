@@ -61,7 +61,7 @@ export default function CreatorCard({ creator }: { creator: Creator }) {
             <Box
               component="img"
               src={IMG.avatar(creator.avatarUrl)}
-              alt=""
+              alt={`${creator.displayName} profile photo`}
               sx={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
               loading="lazy"
               onError={() => setAvatarFailed(true)}

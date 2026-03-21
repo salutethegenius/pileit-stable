@@ -122,6 +122,7 @@ export default function MiniPortal({ video, anchorElement }: Props) {
                   ? IMG.avatar(video.creator.avatarUrl)
                   : undefined
               }
+              alt={`${video.creator.displayName} avatar`}
               sx={{ width: 28, height: 28 }}
             />
             <Typography variant="body2" fontWeight={700}>
@@ -169,7 +170,7 @@ function BoxImage({ video }: { video: PileItVideo }) {
       {src && !imgFailed ? (
         <Image
           src={IMG.portalThumb(src)}
-          alt=""
+          alt={`${video.title} preview image`}
           fill
           sizes="520px"
           quality={72}
@@ -192,7 +193,7 @@ function BoxImage({ video }: { video: PileItVideo }) {
           position: "absolute",
         }}
       >
-        <Typography variant="h6" sx={{ fontWeight: 700, width: "80%" }}>
+        <Typography component="p" variant="h6" sx={{ fontWeight: 700, width: "80%", m: 0 }}>
           {video.title}
         </Typography>
       </div>

@@ -107,7 +107,7 @@ export default function CreatorChannelClient({ creator, videos }: Props) {
               <Box
                 component="img"
                 src={IMG.avatar(creator.avatarUrl)}
-                alt=""
+                alt={`${creator.displayName} channel avatar`}
                 sx={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
                 onError={() => setAvatarFailed(true)}
               />
@@ -115,7 +115,7 @@ export default function CreatorChannelClient({ creator, videos }: Props) {
           </Box>
           <Box flex={1}>
             <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap">
-              <Typography variant="h4" fontStyle="italic" fontWeight={800}>
+              <Typography component="h1" variant="h4" fontStyle="italic" fontWeight={800}>
                 {creator.displayName}
               </Typography>
               <CreatorBadges

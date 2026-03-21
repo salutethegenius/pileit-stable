@@ -1,22 +1,45 @@
-"use client";
-
+import type { Metadata } from "next";
 import Link from "next/link";
-import Box from "@mui/material/Box";
-import Typography from "@mui/material/Typography";
-import Button from "@mui/material/Button";
+
+export const metadata: Metadata = {
+  title: { absolute: "Page not found | PileIt" },
+  description: "The page you requested is missing or the link is invalid.",
+  robots: { index: false, follow: true },
+};
 
 export default function NotFound() {
   return (
-    <Box sx={{ p: 6, textAlign: "center" }}>
-      <Typography variant="h4" fontStyle="italic" fontWeight={800} gutterBottom>
+    <div
+      style={{
+        padding: "48px 24px",
+        textAlign: "center",
+        minHeight: "40vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <h1 style={{ fontSize: "1.75rem", fontWeight: 800, fontStyle: "italic", margin: "0 0 16px" }}>
         Not found
-      </Typography>
-      <Typography color="text.secondary" sx={{ mb: 2 }}>
+      </h1>
+      <p style={{ color: "rgba(255,255,255,0.65)", margin: "0 0 24px", maxWidth: 420 }}>
         That page or creator does not exist.
-      </Typography>
-      <Button component={Link} href="/" variant="contained" color="primary">
+      </p>
+      <Link
+        href="/"
+        style={{
+          display: "inline-block",
+          padding: "10px 24px",
+          backgroundColor: "#ea580c",
+          color: "#fff",
+          borderRadius: 8,
+          fontWeight: 700,
+          textDecoration: "none",
+        }}
+      >
         Back to Browse
-      </Button>
-    </Box>
+      </Link>
+    </div>
   );
 }

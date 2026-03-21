@@ -44,7 +44,7 @@ export default function ContentRow({ title, seeAllHref, videos }: Props) {
         justifyContent="space-between"
         sx={{ mb: 1.5, pr: 1 }}
       >
-        <Typography variant="h6" fontStyle="italic" fontWeight={800}>
+        <Typography component="h2" variant="h6" fontStyle="italic" fontWeight={800}>
           {title}
         </Typography>
         <Stack direction="row" alignItems="center" spacing={1}>

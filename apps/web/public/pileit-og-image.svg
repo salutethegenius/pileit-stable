@@ -1,0 +1,132 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg" shape-rendering="geometricPrecision">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0a0600"/>
+      <stop offset="45%" stop-color="#0e0e0e"/>
+      <stop offset="100%" stop-color="#111111"/>
+    </linearGradient>
+    <radialGradient id="markglow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#f97316" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#f97316" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="rightglow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fb923c" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#fb923c" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Mark gradient scaled 2.8x translated to (100,175) -->
+    <linearGradient id="markgrad" x1="122.4" y1="208.6" x2="357.6" y2="418.6" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#fb923c"/>
+      <stop offset="45%"  stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#c2410c"/>
+    </linearGradient>
+    <linearGradient id="markshine" x1="0" y1="175" x2="0" y2="455" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="rgba(255,255,255,0.28)"/>
+      <stop offset="45%"  stop-color="rgba(255,255,255,0.08)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+    </linearGradient>
+    <linearGradient id="markedge" x1="100" y1="0" x2="380" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"  stop-color="rgba(255,255,255,0.15)"/>
+      <stop offset="30%" stop-color="rgba(255,255,255,0)"/>
+    </linearGradient>
+    <!--
+      Bars scaled 2.8x + translate(100,175):
+      Bar1: x=122.4 y=208.6 w=235.2 h=53.2 rx=11.2
+      Bar2: x=122.4 y=287.2 w=235.2 h=53.2 rx=11.2
+      Bar3: x=122.4 y=365.8 w=235.2 h=53.2 rx=11.2
+      Play: 30*2.8+100=184  10*2.8+175=203
+            30*2.8+100=184  90*2.8+175=427
+            80*2.8+100=324  50*2.8+175=315
+    -->
+    <mask id="markmask">
+      <rect x="122.4" y="208.6" width="235.2" height="53.2" rx="11.2" fill="white"/>
+      <rect x="122.4" y="287.2" width="235.2" height="53.2" rx="11.2" fill="white"/>
+      <rect x="122.4" y="365.8" width="235.2" height="53.2" rx="11.2" fill="white"/>
+      <polygon points="184,203 184,427 324,315" fill="black"/>
+    </mask>
+    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
+      <path d="M 48 0 L 0 0 0 48" fill="none" stroke="#ffffff" stroke-width="0.3" stroke-opacity="0.032"/>
+    </pattern>
+    <linearGradient id="edgebar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#fb923c"/>
+      <stop offset="60%"  stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#c2410c" stop-opacity="0.3"/>
+    </linearGradient>
+    <linearGradient id="rulegrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#f97316"/>
+      <stop offset="55%"  stop-color="#f97316" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#f97316" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background + grid -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#grid)"/>
+
+  <!-- Geometric right slice -->
+  <polygon points="820,0 1200,0 1200,630 940,630" fill="#f97316" fill-opacity="0.025"/>
+  <polygon points="900,0 1200,0 1200,630 1040,630" fill="#f97316" fill-opacity="0.015"/>
+
+  <!-- Left accent bar -->
+  <rect x="0" y="0" width="5" height="630" fill="url(#edgebar)"/>
+
+  <!-- Glows -->
+  <ellipse cx="270" cy="315" rx="230" ry="210" fill="url(#markglow)"/>
+  <ellipse cx="880" cy="270" rx="350" ry="270" fill="url(#rightglow)"/>
+
+  <!-- ── STACK PLAY MARK — exact brand geometry ── -->
+  <g mask="url(#markmask)">
+    <rect x="100" y="175" width="280" height="280" fill="url(#markgrad)"/>
+    <rect x="100" y="175" width="280" height="280" fill="url(#markshine)"/>
+    <rect x="100" y="175" width="280" height="280" fill="url(#markedge)"/>
+  </g>
+  <!-- Play arrow ghost inside cutout -->
+  <polygon points="184,203 184,427 324,315" fill="#7c2d12" fill-opacity="0.35"/>
+  <polygon points="184,203 184,427 324,315"
+    fill="none" stroke="#fb923c" stroke-width="4.2"
+    stroke-linejoin="round" stroke-linecap="round" stroke-opacity="0.5"/>
+
+  <!-- ── WORDMARK — PileIt, Barlow Condensed ExtraBold Italic ── -->
+  <text x="455" y="375"
+    font-family="'Barlow Condensed', Impact, 'Arial Narrow', sans-serif"
+    font-size="215" font-weight="800" font-style="italic"
+    letter-spacing="4" fill="#ffffff">PileIt</text>
+
+  <!-- Orange rule under wordmark -->
+  <rect x="455" y="388" width="590" height="5" rx="2.5" fill="url(#rulegrad)"/>
+
+  <!-- ── TAGLINE ── -->
+  <text x="457" y="446"
+    font-family="'Barlow Condensed', Impact, sans-serif"
+    font-size="27" font-weight="800" font-style="italic"
+    letter-spacing="7" fill="#f97316">WATCH.</text>
+  <text x="608" y="446"
+    font-family="'Barlow Condensed', Impact, sans-serif"
+    font-size="27" font-weight="800" font-style="italic"
+    letter-spacing="7" fill="#4a4a4a">TIP.</text>
+  <text x="685" y="446"
+    font-family="'Barlow Condensed', Impact, sans-serif"
+    font-size="27" font-weight="800" font-style="italic"
+    letter-spacing="7" fill="#4a4a4a">SHOP.</text>
+  <text x="798" y="446"
+    font-family="'Barlow Condensed', Impact, sans-serif"
+    font-size="27" font-weight="800" font-style="italic"
+    letter-spacing="7" fill="#4a4a4a">PILE ON.</text>
+
+  <!-- ── BOTTOM ── -->
+  <rect x="0" y="592" width="1200" height="1" fill="#1f1f1f"/>
+
+  <text x="457" y="488"
+    font-family="'Barlow Condensed', Impact, sans-serif"
+    font-size="19" font-weight="600" font-style="italic"
+    letter-spacing="3" fill="#333333">BAHAMIAN CREATORS. YOUR STAGE.</text>
+
+  <text x="457" y="618"
+    font-family="'Barlow Condensed', Impact, sans-serif"
+    font-size="17" font-weight="600" font-style="italic"
+    letter-spacing="2" fill="#3a3a3a">Nassau, The Bahamas  ·  A KGC Product</text>
+
+  <text x="1148" y="618"
+    font-family="'Barlow Condensed', Impact, sans-serif"
+    font-size="18" font-weight="800" font-style="italic"
+    letter-spacing="3" fill="#f97316" text-anchor="end">PILEIT.COM</text>
+</svg>

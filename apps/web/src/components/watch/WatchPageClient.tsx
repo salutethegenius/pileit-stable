@@ -102,11 +102,20 @@ export default function WatchPageClient({ video }: Props) {
           )}
         </Box>
 
-        <Typography variant="h5" sx={{ mt: 2, mb: 1 }} fontStyle="italic" fontWeight={800}>
+        <Typography
+          component="h1"
+          variant="h5"
+          sx={{ mt: 2, mb: 1 }}
+          fontStyle="italic"
+          fontWeight={800}
+        >
           {video.title}
         </Typography>
         <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap" sx={{ mb: 2 }}>
-          <Avatar src={video.creator.avatarUrl} />
+          <Avatar
+            src={video.creator.avatarUrl}
+            alt={`${video.creator.displayName} avatar`}
+          />
           <Box>
             <Typography fontWeight={700}>{video.creator.displayName}</Typography>
             <Typography variant="caption" color="text.secondary">

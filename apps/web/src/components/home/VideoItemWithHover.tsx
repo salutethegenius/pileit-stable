@@ -57,7 +57,7 @@ const VideoItemWithHoverPure = forwardRef<
         {src && !imgFailed ? (
           <Image
             src={IMG.cardThumb(src)}
-            alt=""
+            alt={`${video.title} — video thumbnail`}
             fill
             sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, (max-width: 1200px) 25vw, 16vw"
             quality={70}

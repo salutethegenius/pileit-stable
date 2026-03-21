@@ -104,7 +104,7 @@ function ApplyForm() {
   if (existing?.status === "pending") {
     return (
       <Box sx={{ p: 4, maxWidth: 560, mx: "auto" }}>
-        <Typography variant="h5" fontStyle="italic" fontWeight={800} gutterBottom>
+        <Typography component="h1" variant="h5" fontStyle="italic" fontWeight={800} gutterBottom>
           Application received
         </Typography>
         <Typography color="text.secondary" sx={{ mb: 2 }}>
@@ -205,7 +205,7 @@ function ApplyForm() {
         <Box sx={{ display: "flex", justifyContent: "center", mb: 2 }}>
           <PileItLockup markSize={44} textSize={28} />
         </Box>
-        <Typography variant="h5" fontStyle="italic" fontWeight={800} gutterBottom>
+        <Typography component="h1" variant="h5" fontStyle="italic" fontWeight={800} gutterBottom>
           Become a creator
         </Typography>
         <Typography color="text.secondary" sx={{ mb: 3 }}>

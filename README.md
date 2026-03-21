@@ -76,8 +76,10 @@ The API exposes **`GET /health`** for Railway’s health check. Tables are creat
 
 1. Import the same GitHub repo in Vercel.
 2. Set **Root Directory** to **`apps/web`** (Framework: Next.js; `vercel.json` marks the framework explicitly).
-3. Add **`NEXT_PUBLIC_API_URL`** = your Railway API base URL (e.g. `https://your-api.up.railway.app`, no trailing slash).
-4. Set **`NEXT_PUBLIC_KEMISPAY_PUBLIC_KEY`** and any other vars from **`apps/web/.env.example`**.
+3. Add **`NEXT_PUBLIC_SITE_URL`** = your live site origin (HTTPS, no trailing slash) for canonical URLs, Open Graph, `sitemap.xml`, and `robots.txt`.
+4. Add **`NEXT_PUBLIC_API_URL`** = your Railway API base URL (e.g. `https://your-api.up.railway.app`, no trailing slash).
+5. Optional: **`API_URL`** — same as the API URL but **server-only**; use when `NEXT_PUBLIC_API_URL` is unset or sitemap/SSR fetches must hit a private URL.
+6. Set **`NEXT_PUBLIC_KEMISPAY_PUBLIC_KEY`** and any other vars from **`apps/web/.env.example`**.
 
 After deploy, confirm the browser can reach the API (CORS must include your Vercel URL) and that login/API calls succeed.
 

@@ -91,7 +91,7 @@ export default function HomePageClient() {
   );
 
   return (
-    <Box component="main" sx={{ bgcolor: "background.default", minHeight: "100vh" }}>
+    <Box sx={{ bgcolor: "background.default", minHeight: "100vh" }}>
       <HeroBanner slides={heroSlides} />
       <Box sx={{ pt: 2 }}>
         <CreatorRow title="Featured Creators" creators={featuredCreators} />

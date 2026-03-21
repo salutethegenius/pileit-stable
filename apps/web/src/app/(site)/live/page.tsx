@@ -6,7 +6,7 @@ import Typography from "@mui/material/Typography";
 export default function LivePage() {
   return (
     <Box sx={{ p: 4, minHeight: "60vh" }}>
-      <Typography variant="h4" fontStyle="italic" fontWeight={800} gutterBottom>
+      <Typography component="h1" variant="h4" fontStyle="italic" fontWeight={800} gutterBottom>
         Live
       </Typography>
       <Typography color="text.secondary">

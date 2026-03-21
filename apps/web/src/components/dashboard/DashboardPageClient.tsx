@@ -162,7 +162,10 @@ export default function DashboardPageClient() {
           display: { xs: "none", md: "block" },
         }}
       >
-        <Typography sx={{ p: 2, fontWeight: 800, fontStyle: "italic" }}>
+        <Typography
+          component="p"
+          sx={{ p: 2, fontWeight: 800, fontStyle: "italic", m: 0 }}
+        >
           Dashboard
         </Typography>
         {["Overview", "Videos", "Earnings", "Shop", "Analytics", "Settings"].map(
@@ -184,6 +187,9 @@ export default function DashboardPageClient() {
         )}
       </Paper>
       <Box sx={{ flex: 1, p: { xs: 2, md: 3 } }}>
+        <Typography component="h1" variant="h5" fontStyle="italic" fontWeight={800} sx={{ mb: 2 }}>
+          Creator dashboard
+        </Typography>
         <Tabs
           value={tab}
           onChange={(_, v) => setTab(v)}
@@ -199,7 +205,13 @@ export default function DashboardPageClient() {
 
         {tab === 0 && (
           <Box>
-            <Typography variant="h5" fontStyle="italic" fontWeight={800} gutterBottom>
+            <Typography
+              component="h2"
+              variant="h5"
+              fontStyle="italic"
+              fontWeight={800}
+              gutterBottom
+            >
               Overview
             </Typography>
             {user.accountType === "creator" && monStatus && !monStatus.monetization_eligible && (
@@ -336,7 +348,13 @@ export default function DashboardPageClient() {
 
         {tab === 1 && (
           <Box>
-            <Typography variant="h5" fontStyle="italic" fontWeight={800} gutterBottom>
+            <Typography
+              component="h2"
+              variant="h5"
+              fontStyle="italic"
+              fontWeight={800}
+              gutterBottom
+            >
               Videos
             </Typography>
             <Button variant="contained" sx={{ mb: 2, textTransform: "none" }}>
@@ -369,7 +387,13 @@ export default function DashboardPageClient() {
 
         {tab === 2 && (
           <Box>
-            <Typography variant="h5" fontStyle="italic" fontWeight={800} gutterBottom>
+            <Typography
+              component="h2"
+              variant="h5"
+              fontStyle="italic"
+              fontWeight={800}
+              gutterBottom
+            >
               Earnings
             </Typography>
             <Typography color="text.secondary">
@@ -383,7 +407,13 @@ export default function DashboardPageClient() {
 
         {tab === 3 && (
           <Box>
-            <Typography variant="h5" fontStyle="italic" fontWeight={800} gutterBottom>
+            <Typography
+              component="h2"
+              variant="h5"
+              fontStyle="italic"
+              fontWeight={800}
+              gutterBottom
+            >
               Shop
             </Typography>
             <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
@@ -408,15 +438,25 @@ export default function DashboardPageClient() {
         )}
 
         {tab === 4 && (
-          <Typography color="text.secondary">
-            Analytics: per-video views and tips from /dashboard/analytics.
-          </Typography>
+          <Box>
+            <Typography component="h2" variant="h5" fontStyle="italic" fontWeight={800} gutterBottom>
+              Analytics
+            </Typography>
+            <Typography color="text.secondary">
+              Analytics: per-video views and tips from /dashboard/analytics.
+            </Typography>
+          </Box>
         )}
 
         {tab === 5 && (
-          <Typography color="text.secondary">
-            Channel settings and payout preferences.
-          </Typography>
+          <Box>
+            <Typography component="h2" variant="h5" fontStyle="italic" fontWeight={800} gutterBottom>
+              Settings
+            </Typography>
+            <Typography color="text.secondary">
+              Channel settings and payout preferences.
+            </Typography>
+          </Box>
         )}
       </Box>
     </Box>

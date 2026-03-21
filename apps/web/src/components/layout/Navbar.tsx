@@ -241,7 +241,7 @@ export default function Navbar() {
               >
                 <Avatar
                   src={user.avatarUrl ?? undefined}
-                  alt=""
+                  alt={`${user.displayName} account menu`}
                   sx={{ width: 32, height: 32, fontSize: 14, fontWeight: 700 }}
                 >
                   {user.displayName.slice(0, 1).toUpperCase()}

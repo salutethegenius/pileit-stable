@@ -122,7 +122,7 @@ export default function ProfilePage() {
 
   return (
     <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 560 }}>
-      <Typography variant="h5" fontStyle="italic" fontWeight={800} gutterBottom>
+      <Typography component="h1" variant="h5" fontStyle="italic" fontWeight={800} gutterBottom>
         Profile
       </Typography>
       <Paper sx={{ p: 3, bgcolor: "#2a2a2a", border: "1px solid #333" }}>
