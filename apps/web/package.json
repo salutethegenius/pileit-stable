@@ -12,7 +12,7 @@
     "verify": "npm run lint && npm run typecheck && npm run build"
   },
   "engines": {
-    "node": ">=18.18.0"
+    "node": "20.x"
   },
   "dependencies": {
     "@babel/runtime": "^7.29.2",
