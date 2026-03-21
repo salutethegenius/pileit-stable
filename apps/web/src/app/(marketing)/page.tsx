@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import LandingPageClient from "@/components/landing/LandingPageClient";
 import JsonLd from "@/components/seo/JsonLd";
-import { getSiteUrl } from "@/lib/site";
+import { getDefaultOgImageUrl, getSiteUrl } from "@/lib/site";
 
 const siteUrl = getSiteUrl();
+const ogImageAbsolute = getDefaultOgImageUrl();
 
 export const metadata: Metadata = {
   title: {
@@ -19,7 +20,7 @@ export const metadata: Metadata = {
     url: `${siteUrl}/`,
     images: [
       {
-        url: `${siteUrl}/pileit-og-image.png`,
+        url: ogImageAbsolute,
         width: 1200,
         height: 630,
         alt: "PileIt — Bahamian creators. Watch, tip, shop, pile on.",
@@ -31,7 +32,7 @@ export const metadata: Metadata = {
     title: "PileIt — Built for Bahamian creators",
     description:
       "Built for Bahamian creators — watch, tip, subscribe, and pile on.",
-    images: [`${siteUrl}/pileit-og-image.png`],
+    images: [ogImageAbsolute],
   },
 };
 

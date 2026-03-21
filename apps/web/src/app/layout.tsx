@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Barlow_Condensed, DM_Sans } from "next/font/google";
 import ThemeRegistry from "@/components/ThemeRegistry";
-import { getSiteUrl } from "@/lib/site";
+import { getDefaultOgImageUrl, getSiteUrl } from "@/lib/site";
 import "./globals.css";
 
 const barlowCondensed = Barlow_Condensed({
@@ -19,6 +19,7 @@ const dmSans = DM_Sans({
 });
 
 const siteUrl = getSiteUrl();
+const ogImageAbsolute = getDefaultOgImageUrl();
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -41,7 +42,7 @@ export const metadata: Metadata = {
       "Watch Bahamian creators, join The Pile, send tips, and subscribe. Built for The Bahamas.",
     images: [
       {
-        url: "/pileit-og-image.png",
+        url: ogImageAbsolute,
         width: 1200,
         height: 630,
         alt: "PileIt — Bahamian creators. Watch, tip, shop, pile on.",
@@ -53,7 +54,7 @@ export const metadata: Metadata = {
     title: "PileIt — Bahamian streaming & creators",
     description:
       "Watch Bahamian creators, join The Pile, send tips, and subscribe. Built for The Bahamas.",
-    images: ["/pileit-og-image.png"],
+    images: [ogImageAbsolute],
   },
 };
 
