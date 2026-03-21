@@ -21,8 +21,18 @@ const dmSans = DM_Sans({
 const siteUrl = getSiteUrl();
 const ogImageAbsolute = getDefaultOgImageUrl();
 
+function metadataBaseUrl(): URL {
+  try {
+    const u = new URL(siteUrl);
+    if (!u.hostname) throw new Error("missing host");
+    return u;
+  } catch {
+    return new URL("https://pileit.app");
+  }
+}
+
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
+  metadataBase: metadataBaseUrl(),
   title: {
     default: "PileIt — Bahamian streaming & creators",
     template: "%s | PileIt",

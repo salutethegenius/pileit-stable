@@ -7,6 +7,10 @@ export const metadata: Metadata = {
   robots: { index: false, follow: true },
 };
 
+/**
+ * Root not-found: required for global `/_not-found` prerender (Vercel build).
+ * Keeps shared parent layouts (e.g. `(site)` Navbar) when notFound() is thrown under those routes.
+ */
 export default function NotFound() {
   return (
     <div

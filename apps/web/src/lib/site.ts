@@ -7,9 +7,22 @@
  */
 const PRODUCTION_DEFAULT_ORIGIN = "https://pileit.app";
 
+function isValidHttpUrl(s: string): boolean {
+  try {
+    const u = new URL(s);
+    return (u.protocol === "https:" || u.protocol === "http:") && Boolean(u.hostname);
+  } catch {
+    return false;
+  }
+}
+
 export function getSiteUrl(): string {
   const raw = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-  if (raw) return raw.replace(/\/$/, "");
+  if (raw) {
+    const trimmed = raw.replace(/\/$/, "");
+    const withProto = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+    if (isValidHttpUrl(withProto)) return withProto;
+  }
   if (process.env.NODE_ENV === "production") return PRODUCTION_DEFAULT_ORIGIN;
   return "http://localhost:3000";
 }
