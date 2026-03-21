@@ -17,12 +17,21 @@ export const metadata: Metadata = {
     description:
       "Streaming built for Bahamian creators. Watch, tip, subscribe, and see for yourself.",
     url: `${siteUrl}/`,
+    images: [
+      {
+        url: `${siteUrl}/pileit-og-image.png`,
+        width: 1200,
+        height: 630,
+        alt: "PileIt — Bahamian creators. Watch, tip, shop, pile on.",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "PileIt — Built for Bahamian creators",
     description:
       "Built for Bahamian creators — watch, tip, subscribe, and pile on.",
+    images: [`${siteUrl}/pileit-og-image.png`],
   },
 };
 
