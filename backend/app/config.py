@@ -24,6 +24,8 @@ class Settings(BaseSettings):
         "http://localhost:3001,http://127.0.0.1:3001,"
         "http://pileit-web.localhost:1355,http://127.0.0.1:1355"
     )
+    # Optional regex (e.g. ^https://.*\\.vercel\\.app$) merged with allow_origins for previews.
+    cors_origin_regex: str = ""
     kemispay_api_url: str = "https://api.kemispay.com"
     kemispay_secret_key: str = "sk_test_stub"
     platform_fee_tips: float = 0.15

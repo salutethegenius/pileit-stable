@@ -8,6 +8,21 @@ from app.security import hash_password
 
 CLAIM_DEMO_HANDLE = "pileitunclaimed"
 
+DEMO_MP4 = "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+
+# Previous single thumbnail for all core rows — used to backfill older Postgres seeds.
+LEGACY_UNIFIED_THUMB = (
+    "https://images.unsplash.com/photo-1529156069898-49953e39b3ac"
+    "?auto=format&fit=crop&w=640&h=360&q=68"
+)
+
+
+def _unsplash(photo_id: str, w: int = 640, h: int = 360) -> str:
+    return (
+        f"https://images.unsplash.com/{photo_id}"
+        f"?auto=format&fit=crop&w={w}&h={h}&q=68"
+    )
+
 
 def seed_if_empty(db: Session) -> None:
     if db.query(models.User).first():
@@ -63,6 +78,7 @@ def seed_if_empty(db: Session) -> None:
     )
     db.add(viewer)
 
+    # Photo IDs aligned with apps/web/src/data/mock.ts (U.*) for consistent art.
     videos = [
         (
             "v1",
@@ -71,6 +87,9 @@ def seed_if_empty(db: Session) -> None:
             "A love letter to the quirks of downtown Nassau.",
             False,
             "Comedy",
+            "photo-1529156069898-49953e39b3ac",
+            272,
+            12400,
         ),
         (
             "v2",
@@ -79,6 +98,9 @@ def seed_if_empty(db: Session) -> None:
             "Sunrise coffee and a walk on the sand.",
             True,
             "Lifestyle",
+            "photo-1507525428034-b723cf961d3e",
+            1100,
+            9100,
         ),
         (
             "v3",
@@ -87,6 +109,9 @@ def seed_if_empty(db: Session) -> None:
             "Live session from the harbour.",
             True,
             "Music",
+            "photo-1493225457124-a3eb161ffa5f",
+            227,
+            31800,
         ),
         (
             "v4",
@@ -95,6 +120,9 @@ def seed_if_empty(db: Session) -> None:
             "Family recipe and market run.",
             False,
             "Food",
+            "photo-1546069901-ba9599a7e63c",
+            1334,
+            7100,
         ),
         (
             "v5",
@@ -103,6 +131,9 @@ def seed_if_empty(db: Session) -> None:
             "Hot takes and stats.",
             False,
             "Sports",
+            "photo-1574629810360-7efbbe195018",
+            665,
+            19000,
         ),
         (
             "v6",
@@ -111,9 +142,12 @@ def seed_if_empty(db: Session) -> None:
             "Island tailoring in Freeport.",
             False,
             "Fashion",
+            "photo-1445205170230-053b83016050",
+            521,
+            24600,
         ),
     ]
-    for vid, cid, title, desc, locked, cat in videos:
+    for vid, cid, title, desc, locked, cat, photo_id, duration, views in videos:
         db.add(
             models.Video(
                 id=vid,
@@ -123,10 +157,10 @@ def seed_if_empty(db: Session) -> None:
                 is_locked=locked,
                 category=cat,
                 status="published",
-                duration_seconds=300,
-                view_count=1000,
-                video_url="https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-                thumbnail_url="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=640&h=360&q=68",
+                duration_seconds=duration,
+                view_count=views,
+                video_url=DEMO_MP4,
+                thumbnail_url=_unsplash(photo_id),
             )
         )
 
@@ -153,6 +187,271 @@ def seed_if_empty(db: Session) -> None:
     )
 
     db.commit()
+
+
+# v7–v25: matches mock catalog IDs so /watch/v7… and SSR fetches succeed when the API is live.
+# Tuple: id, creator_id, title, description, is_locked, category, unsplash_photo_id, duration_seconds, view_count
+_EXTRA_DEMO_VIDEOS = [
+    (
+        "v7",
+        "c1",
+        "Island Traffic Chronicles",
+        "More comedy from downtown Nassau.",
+        False,
+        "Comedy",
+        "photo-1529156069898-49953e39b3ac",
+        412,
+        9800,
+    ),
+    (
+        "v8",
+        "c1",
+        "Open Mic at Arawak Cay",
+        "Crowd work and island crowd energy.",
+        True,
+        "Comedy",
+        "photo-1529156069898-49953e39b3ac",
+        318,
+        15200,
+    ),
+    (
+        "v9",
+        "c1",
+        "Conch Salad Jokes Vol. 2",
+        "Fresh bits from the market line.",
+        False,
+        "Comedy",
+        "photo-1546069901-ba9599a7e63c",
+        245,
+        6200,
+    ),
+    (
+        "v10",
+        "c1",
+        "When Your Cousin Visits Nassau",
+        "Family stories that hit too close.",
+        False,
+        "Comedy",
+        "photo-1445205170230-053b83016050",
+        384,
+        22100,
+    ),
+    (
+        "v11",
+        "c1",
+        "Skits from the Fish Fry",
+        "Late-night energy by the water.",
+        False,
+        "Comedy",
+        "photo-1529156069898-49953e39b3ac",
+        501,
+        8700,
+    ),
+    (
+        "v12",
+        "c3",
+        "Junkanoo Drums in the Yard",
+        "Rhythm session in the neighbourhood.",
+        False,
+        "Music",
+        "photo-1493225457124-a3eb161ffa5f",
+        198,
+        14200,
+    ),
+    (
+        "v13",
+        "c3",
+        "Sunset Freestyle (Acoustic)",
+        "Strings and salt air.",
+        True,
+        "Music",
+        "photo-1507525428034-b723cf961d3e",
+        256,
+        18900,
+    ),
+    (
+        "v14",
+        "c3",
+        "Studio Session: Island Soul",
+        "Tracking vocals and grooves.",
+        False,
+        "Music",
+        "photo-1493225457124-a3eb161ffa5f",
+        340,
+        11200,
+    ),
+    (
+        "v15",
+        "c3",
+        "Cable Beach Afterparty Set",
+        "DJ set recap from the strip.",
+        False,
+        "Music",
+        "photo-1493225457124-a3eb161ffa5f",
+        289,
+        25600,
+    ),
+    (
+        "v16",
+        "c3",
+        "Steel Pan on the Dock",
+        "Sunset pan by the water.",
+        False,
+        "Music",
+        "photo-1507525428034-b723cf961d3e",
+        176,
+        7400,
+    ),
+    (
+        "v17",
+        "c2",
+        "Slow Sunday: Exuma Blues",
+        "Reset day on the cays.",
+        False,
+        "Lifestyle",
+        "photo-1507525428034-b723cf961d3e",
+        620,
+        13400,
+    ),
+    (
+        "v18",
+        "c2",
+        "Home Tour — Coastal Minimal",
+        "Spaces that breathe with the tide.",
+        True,
+        "Lifestyle",
+        "photo-1507525428034-b723cf961d3e",
+        445,
+        20100,
+    ),
+    (
+        "v19",
+        "c2",
+        "Skincare in Humid Island Air",
+        "Routine that survives August.",
+        False,
+        "Lifestyle",
+        "photo-1507525428034-b723cf961d3e",
+        312,
+        9600,
+    ),
+    (
+        "v20",
+        "c2",
+        "Coffee & Journaling by the Marina",
+        "Morning pages with a harbour view.",
+        False,
+        "Lifestyle",
+        "photo-1546069901-ba9599a7e63c",
+        268,
+        11800,
+    ),
+    (
+        "v21",
+        "c2",
+        "Packing for a Weekend in Bimini",
+        "Bags, boats, and a light carry-on.",
+        False,
+        "Lifestyle",
+        "photo-1574629810360-7efbbe195018",
+        356,
+        8300,
+    ),
+    (
+        "v22",
+        "c5",
+        "Beach Run Club: Nassau Chapter",
+        "Miles with the crew at dawn.",
+        False,
+        "Sports",
+        "photo-1574629810360-7efbbe195018",
+        412,
+        5600,
+    ),
+    (
+        "v23",
+        "c4",
+        "Fish Fry Taste Test",
+        "Sampling the strip, one stall at a time.",
+        False,
+        "Food",
+        "photo-1546069901-ba9599a7e63c",
+        298,
+        10200,
+    ),
+    (
+        "v24",
+        "c5",
+        "Court Vision: Summer League",
+        "Highlights and hustle in the heat.",
+        False,
+        "Sports",
+        "photo-1574629810360-7efbbe195018",
+        524,
+        7800,
+    ),
+    (
+        "v25",
+        "c6",
+        "Resort Strip Lookbook",
+        "Island tailoring on the runway.",
+        False,
+        "Fashion",
+        "photo-1445205170230-053b83016050",
+        387,
+        16500,
+    ),
+]
+
+_CORE_DEMO_THUMB_PHOTO: dict[str, str] = {
+    "v1": "photo-1529156069898-49953e39b3ac",
+    "v2": "photo-1507525428034-b723cf961d3e",
+    "v3": "photo-1493225457124-a3eb161ffa5f",
+    "v4": "photo-1546069901-ba9599a7e63c",
+    "v5": "photo-1574629810360-7efbbe195018",
+    "v6": "photo-1445205170230-053b83016050",
+}
+
+
+def backfill_core_demo_thumbnails(db: Session) -> None:
+    """Older deployments used one Unsplash URL for v1–v6; restore distinct thumbs in place."""
+    changed = False
+    for vid, photo_id in _CORE_DEMO_THUMB_PHOTO.items():
+        v = db.get(models.Video, vid)
+        if v and v.thumbnail_url == LEGACY_UNIFIED_THUMB:
+            v.thumbnail_url = _unsplash(photo_id)
+            changed = True
+    if changed:
+        db.commit()
+
+
+def ensure_extra_demo_videos(db: Session) -> None:
+    """Insert v7–v25 when missing so API matches web mock IDs (stops GET /videos/v7 404 noise)."""
+    if not db.query(models.User).filter(models.User.id == "c1").first():
+        return
+    added = False
+    for row in _EXTRA_DEMO_VIDEOS:
+        vid, cid, title, desc, locked, cat, photo_id, duration, views = row
+        if db.get(models.Video, vid):
+            continue
+        db.add(
+            models.Video(
+                id=vid,
+                creator_id=cid,
+                title=title,
+                description=desc,
+                is_locked=locked,
+                category=cat,
+                status="published",
+                duration_seconds=duration,
+                view_count=views,
+                video_url=DEMO_MP4,
+                thumbnail_url=_unsplash(photo_id),
+            )
+        )
+        added = True
+    if added:
+        db.commit()
 
 
 def ensure_claim_demo_stub(db: Session) -> None:

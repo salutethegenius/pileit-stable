@@ -20,17 +20,37 @@ type Props = {
 
 export default function ContentRow({ title, seeAllHref, videos }: Props) {
   const sliderRef = useRef<Slider>(null);
+  const n = videos.length;
+  const cap = (max: number) => Math.max(1, Math.min(max, n));
   const settings: Settings = {
     className: "pileit-content-row-slider",
     speed: 450,
     arrows: false,
     infinite: false,
-    slidesToShow: 4,
-    slidesToScroll: 2,
+    centerMode: false,
+    slidesToShow: cap(4),
+    slidesToScroll: Math.min(2, n),
     responsive: [
-      { breakpoint: 1200, settings: { slidesToShow: 3, slidesToScroll: 2 } },
-      { breakpoint: 900, settings: { slidesToShow: 2, slidesToScroll: 1 } },
-      { breakpoint: 600, settings: { slidesToShow: 1, slidesToScroll: 1 } },
+      {
+        breakpoint: 1200,
+        settings: {
+          slidesToShow: cap(3),
+          slidesToScroll: Math.min(2, n),
+          centerMode: false,
+        },
+      },
+      {
+        breakpoint: 900,
+        settings: {
+          slidesToShow: cap(2),
+          slidesToScroll: 1,
+          centerMode: false,
+        },
+      },
+      {
+        breakpoint: 600,
+        settings: { slidesToShow: 1, slidesToScroll: 1, centerMode: false },
+      },
     ],
   };
 

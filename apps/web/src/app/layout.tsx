@@ -30,9 +30,6 @@ export const metadata: Metadata = {
     "Watch Bahamian creators, join The Pile, send tips, and subscribe. Streaming built for The Bahamas with KemisPay.",
   applicationName: "PileIt",
   robots: { index: true, follow: true },
-  icons: {
-    icon: [{ url: "/favicon.ico" }],
-  },
   manifest: "/manifest.webmanifest",
   openGraph: {
     type: "website",
