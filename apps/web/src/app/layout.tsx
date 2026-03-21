@@ -42,6 +42,14 @@ export const metadata: Metadata = {
   applicationName: "PileIt",
   robots: { index: true, follow: true },
   manifest: "/manifest.webmanifest",
+  /** Explicit favicon links (JSX in /public is not a valid icon — use SVG/ICO/PNG only). */
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+    shortcut: "/favicon.svg",
+  },
   openGraph: {
     type: "website",
     locale: "en_BS",
