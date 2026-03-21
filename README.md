@@ -56,6 +56,31 @@ Set `NEXT_PUBLIC_API_URL=http://127.0.0.1:8000` when the API listens on port 800
 
 **Product spec:** see [`pileit-cursor-brief.pdf`](pileit-cursor-brief.pdf) and [`docs/BUILD_BRIEF.md`](docs/BUILD_BRIEF.md).
 
+## Deploy (Railway API + Vercel web)
+
+### Railway (FastAPI + PostgreSQL)
+
+1. Create a project from GitHub repo [salutethegenius/pileit-stable](https://github.com/salutethegenius/pileit-stable).
+2. Add a **PostgreSQL** database; link it to the API service so **`DATABASE_URL`** is set automatically.
+3. Create a **service** from the same repo, set **Root Directory** to **`backend`** (so `railway.toml` applies).
+4. In the service **Variables**, set at least:
+   - **`JWT_SECRET`** / **`JWT_REFRESH_SECRET`** — strong random strings (not the dev defaults).
+   - **`CORS_ORIGINS`** — comma-separated origins that may call the API, e.g. `https://your-app.vercel.app,https://yourdomain.com`.
+   - **`PUBLIC_WEB_URL`** — public site URL (no trailing slash), e.g. `https://your-app.vercel.app`.
+   - **`API_PUBLIC_URL`** — public API URL (no trailing slash), e.g. `https://your-api.up.railway.app`.
+   - Copy the rest from **`backend/.env.example`** (KemisPay, Meta, etc.) as you enable those integrations.
+
+The API exposes **`GET /health`** for Railway’s health check. Tables are created on boot via SQLAlchemy; use a strong Postgres password and restrict access to the DB service.
+
+### Vercel (Next.js)
+
+1. Import the same GitHub repo in Vercel.
+2. Set **Root Directory** to **`apps/web`** (Framework: Next.js; `vercel.json` marks the framework explicitly).
+3. Add **`NEXT_PUBLIC_API_URL`** = your Railway API base URL (e.g. `https://your-api.up.railway.app`, no trailing slash).
+4. Set **`NEXT_PUBLIC_KEMISPAY_PUBLIC_KEY`** and any other vars from **`apps/web/.env.example`**.
+
+After deploy, confirm the browser can reach the API (CORS must include your Vercel URL) and that login/API calls succeed.
+
 ## Verification (before a release)
 
 From the repo root (no `npm install` at root required):

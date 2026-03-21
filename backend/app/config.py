@@ -44,6 +44,10 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def resolve_sqlite_url(self):
         u = self.database_url.strip()
+        # Heroku / Railway-style URLs use postgres://; SQLAlchemy expects postgresql://
+        if u.startswith("postgres://"):
+            u = "postgresql://" + u[len("postgres://") :]
+            self.database_url = u
         if not u.lower().startswith("sqlite:"):
             return self
         prefix = "sqlite:///"
