@@ -130,6 +130,10 @@ def seed_if_empty(db: Session) -> None:
             )
         )
 
+    # PostgreSQL enforces FKs at flush time; without an explicit flush, SQLAlchemy may
+    # emit live_chat_messages / pile_comments before videos in one commit batch.
+    db.flush()
+
     db.add(
         models.PileComment(
             video_id="v1",
