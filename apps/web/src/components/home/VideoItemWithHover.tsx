@@ -7,10 +7,11 @@ import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import Typography from "@mui/material/Typography";
 import type { PileItVideo } from "@/types/content";
-import { usePortal } from "@/providers/PortalProvider";
+import { usePortal, usePortalData } from "@/providers/PortalProvider";
 import { formatDuration } from "@/utils/format";
 import { IMG } from "@/lib/imageUrls";
 import CategoryMediaPlaceholder from "@/components/brand/CategoryMediaPlaceholder";
+import { useCoarsePointer } from "@/hooks/useCoarsePointer";
 
 type Props = { video: PileItVideo };
 
@@ -19,9 +20,14 @@ const VideoItemWithHoverPure = forwardRef<
   {
     src: string;
     onHover: (v: boolean) => void;
+    onCoarseActivate: () => void;
+    coarsePointer: boolean;
     video: PileItVideo;
   }
->(function VideoItemWithHoverPure({ src, onHover, video }, ref) {
+>(function VideoItemWithHoverPure(
+  { src, onHover, onCoarseActivate, coarsePointer, video },
+  ref
+) {
   const [imgFailed, setImgFailed] = useState(false);
 
   useEffect(() => {
@@ -34,14 +40,40 @@ const VideoItemWithHoverPure = forwardRef<
     <Paper
       ref={ref}
       elevation={0}
-      onPointerEnter={() => onHover(true)}
-      onPointerLeave={() => onHover(false)}
+      onPointerEnter={() => {
+        if (!coarsePointer) onHover(true);
+      }}
+      onPointerLeave={() => {
+        if (!coarsePointer) onHover(false);
+      }}
+      onClick={() => {
+        if (coarsePointer) onCoarseActivate();
+      }}
+      role={coarsePointer ? "button" : undefined}
+      tabIndex={coarsePointer ? 0 : undefined}
+      aria-label={coarsePointer ? `Show preview for ${video.title}` : undefined}
+      onKeyDown={
+        coarsePointer
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onCoarseActivate();
+              }
+            }
+          : undefined
+      }
       sx={{
         bgcolor: "background.paper",
         borderRadius: 1,
         overflow: "hidden",
         transition: "transform 0.2s ease",
-        "&:hover": { transform: "scale(1.08)", zIndex: 2 },
+        cursor: coarsePointer ? "pointer" : "default",
+        "@media (hover: hover)": {
+          "&:hover": {
+            transform: coarsePointer ? undefined : "scale(1.08)",
+            zIndex: coarsePointer ? undefined : 2,
+          },
+        },
       }}
     >
       <Box
@@ -126,20 +158,34 @@ const VideoItemWithHoverPure = forwardRef<
 
 export default function VideoItemWithHover({ video }: Props) {
   const setPortal = usePortal();
+  const { miniModalVideo } = usePortalData();
   const elementRef = useRef<HTMLDivElement>(null);
   const [hovered, setHovered] = useState(false);
+  const coarsePointer = useCoarsePointer();
 
   useEffect(() => {
+    if (coarsePointer) return;
     if (hovered && elementRef.current) {
       setPortal(elementRef.current, video);
     }
-  }, [hovered, video, setPortal]);
+  }, [hovered, video, setPortal, coarsePointer]);
+
+  const onCoarseActivate = () => {
+    if (!elementRef.current) return;
+    if (miniModalVideo?.id === video.id) {
+      setPortal(null, null);
+    } else {
+      setPortal(elementRef.current, video);
+    }
+  };
 
   return (
     <VideoItemWithHoverPure
       ref={elementRef}
       src={video.thumbnailUrl}
       onHover={setHovered}
+      onCoarseActivate={onCoarseActivate}
+      coarsePointer={coarsePointer}
       video={video}
     />
   );

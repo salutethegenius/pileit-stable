@@ -53,7 +53,7 @@ export default function SiteFooter() {
       <Container maxWidth="lg" sx={{ px: { xs: 2, md: 3 }, py: { xs: 4, md: 5 } }}>
         <Grid container spacing={{ xs: 4, md: 3 }}>
           <Grid item xs={12} md={3}>
-            <Link href="/" style={{ display: "inline-flex", alignItems: "center" }}>
+            <Link href="/browse" style={{ display: "inline-flex", alignItems: "center" }}>
               <PileItLockup markSize={36} textSize={24} />
             </Link>
             <Typography
@@ -79,10 +79,10 @@ export default function SiteFooter() {
             <Typography component="h2" sx={headingSx}>
               PLATFORM
             </Typography>
-            <FootLink href="/">Browse</FootLink>
+            <FootLink href="/browse">Browse</FootLink>
             <FootLink href="/creators">Creators</FootLink>
             <FootLink href="/live">Live</FootLink>
-            <FootLink href="/#trending">Trending</FootLink>
+            <FootLink href="/browse#trending">Trending</FootLink>
           </Grid>
 
           <Grid item xs={6} sm={4} md={3}>
@@ -121,11 +121,19 @@ export default function SiteFooter() {
             variant="caption"
             sx={{ color: PILEIT_THEME.textDim, lineHeight: 1.6 }}
           >
-            © {new Date().getFullYear()} PileIt · The Kemis Group of Companies · Nassau,
-            Bahamas
+            © {new Date().getFullYear()} PileIt · The Kemis Group of Companies · Bahamas
           </Typography>
-          <Typography variant="caption" sx={{ color: PILEIT_THEME.textDim }}>
-            A KGC Product
+          <Typography
+            component={Link}
+            href="https://pileit.app"
+            variant="caption"
+            sx={{
+              color: PILEIT_THEME.textDim,
+              textDecoration: "none",
+              "&:hover": { color: PILEIT_THEME.accent },
+            }}
+          >
+            pileit.app
           </Typography>
         </Box>
       </Container>

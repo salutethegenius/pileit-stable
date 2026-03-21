@@ -6,6 +6,7 @@ import { getSiteUrl } from "@/lib/site";
 
 const STATIC_PATHS = [
   "",
+  "/browse",
   "/creators",
   "/live",
   "/login",
@@ -54,8 +55,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticEntries: MetadataRoute.Sitemap = STATIC_PATHS.map((path) => ({
     url: `${origin}${path || "/"}`,
     lastModified: new Date(),
-    changeFrequency: path === "" ? "daily" : "weekly",
-    priority: path === "" ? 1 : path === "/creators" ? 0.9 : 0.7,
+    changeFrequency: path === "" || path === "/browse" ? "daily" : "weekly",
+    priority:
+      path === ""
+        ? 1
+        : path === "/browse"
+          ? 0.95
+          : path === "/creators"
+            ? 0.9
+            : 0.7,
   }));
 
   const creatorEntries: MetadataRoute.Sitemap = handles.map((handle) => ({

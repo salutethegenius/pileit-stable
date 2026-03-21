@@ -38,7 +38,7 @@ export default function CreatorsPageClient() {
           </Grid>
         ))}
       </Grid>
-      <Typography component={Link} href="/" sx={{ display: "inline-block", mt: 4 }}>
+      <Typography component={Link} href="/browse" sx={{ display: "inline-block", mt: 4 }}>
         ← Back to Browse
       </Typography>
     </Box>

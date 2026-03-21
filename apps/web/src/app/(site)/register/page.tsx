@@ -134,8 +134,8 @@ function RegisterForm() {
           </Link>
         </Typography>
         <Typography sx={{ mt: 1 }}>
-          <Link href="/" style={{ color: "#999" }}>
-            ← Back home
+          <Link href="/browse" style={{ color: "#999" }}>
+            ← Back to Browse
           </Link>
         </Typography>
       </Paper>

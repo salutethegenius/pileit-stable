@@ -53,7 +53,7 @@ export default function Navbar() {
     >
       <Toolbar sx={{ minHeight: 64, px: { xs: 2, md: 3 }, gap: 2 }}>
         <Link
-          href="/"
+          href="/browse"
           style={{
             display: "flex",
             alignItems: "center",
@@ -72,7 +72,7 @@ export default function Navbar() {
               gap: 3,
             }}
           >
-            <Typography component={Link} href="/" sx={navLinkSx}>
+            <Typography component={Link} href="/browse" sx={navLinkSx}>
               Browse
             </Typography>
             <Typography component={Link} href="/creators" sx={navLinkSx}>
@@ -99,7 +99,7 @@ export default function Navbar() {
               open={Boolean(mobileOpen)}
               onClose={() => setMobileOpen(null)}
             >
-              <MenuItem component={Link} href="/" onClick={() => setMobileOpen(null)}>
+              <MenuItem component={Link} href="/browse" onClick={() => setMobileOpen(null)}>
                 Browse
               </MenuItem>
               <MenuItem

@@ -30,6 +30,7 @@ export default function MiniPortal({ video, anchorElement }: Props) {
   const setPortal = usePortal();
   const { openDetail } = useDetailModal();
   const rect = anchorElement.getBoundingClientRect();
+  const watchHref = `/watch/${encodeURIComponent(video.id)}`;
 
   return (
     <Card
@@ -42,9 +43,31 @@ export default function MiniPortal({ video, anchorElement }: Props) {
         borderRadius: 1,
         boxShadow: "0 16px 48px rgba(0,0,0,0.65)",
         overflow: "hidden",
+        "&:hover .pileit-mini-play": {
+          color: "primary.main",
+          transform: "scale(1.07)",
+          filter: "drop-shadow(0 0 10px rgba(234, 88, 12, 0.5))",
+        },
       }}
     >
-      <BoxImage video={video} />
+      <Box
+        component={Link}
+        href={watchHref}
+        sx={{
+          display: "block",
+          textDecoration: "none",
+          color: "inherit",
+          cursor: "pointer",
+          "&:focus-visible": {
+            outline: "2px solid",
+            outlineColor: "primary.main",
+            outlineOffset: 2,
+          },
+        }}
+        aria-label={`Play ${video.title}`}
+      >
+        <BoxImage video={video} />
+      </Box>
       <CardContent sx={{ pt: 1.5, pb: 1 }}>
         <Stack spacing={1}>
           <Stack
@@ -54,10 +77,20 @@ export default function MiniPortal({ video, anchorElement }: Props) {
             sx={{ flexWrap: "nowrap" }}
           >
             <IconButton
+              className="pileit-mini-play"
               component={Link}
-              href={`/watch/${video.id}`}
-              sx={{ p: 0, color: "text.primary" }}
-              aria-label="Play"
+              href={watchHref}
+              sx={{
+                p: 0,
+                color: "text.primary",
+                transition: "color 0.18s ease, transform 0.18s ease, filter 0.18s ease",
+                "&:hover": {
+                  color: "primary.light",
+                  transform: "scale(1.14)",
+                  filter: "drop-shadow(0 0 12px rgba(234, 88, 12, 0.65))",
+                },
+              }}
+              aria-label={`Play ${video.title}`}
             >
               <PlayCircleIcon sx={{ width: 40, height: 40 }} />
             </IconButton>
@@ -179,24 +212,24 @@ function BoxImage({ video }: { video: PileItVideo }) {
           onError={() => setImgFailed(true)}
         />
       ) : null}
-      <div
-        style={{
+      <Box
+        sx={{
           display: "flex",
           flexDirection: "row",
           alignItems: "center",
           left: 0,
           right: 0,
           bottom: 0,
-          paddingLeft: 16,
-          paddingRight: 16,
-          paddingBottom: 4,
+          px: 2,
+          pb: 0.5,
           position: "absolute",
+          pointerEvents: "none",
         }}
       >
         <Typography component="p" variant="h6" sx={{ fontWeight: 700, width: "80%", m: 0 }}>
           {video.title}
         </Typography>
-      </div>
+      </Box>
     </div>
   );
 }

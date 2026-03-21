@@ -1,0 +1,188 @@
+<svg width="1920" height="720" viewBox="0 0 1920 720" xmlns="http://www.w3.org/2000/svg" shape-rendering="geometricPrecision">
+  <defs>
+
+    <!-- Base: pure dark left, warming toward right -->
+    <linearGradient id="bg" x1="0" y1="0" x2="1920" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#080808"/>
+      <stop offset="35%"  stop-color="#0e0d0b"/>
+      <stop offset="70%"  stop-color="#130f08"/>
+      <stop offset="100%" stop-color="#1a1008"/>
+    </linearGradient>
+
+    <!-- Vertical dark vignette - keep left edge very dark for text legibility -->
+    <linearGradient id="leftvignette" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#000000" stop-opacity="0.72"/>
+      <stop offset="40%"  stop-color="#000000" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Right-side orange atmosphere -->
+    <radialGradient id="orangeatmos" cx="85%" cy="45%" r="55%" gradientUnits="objectBoundingBox">
+      <stop offset="0%"   stop-color="#f97316" stop-opacity="0.13"/>
+      <stop offset="60%"  stop-color="#f97316" stop-opacity="0.04"/>
+      <stop offset="100%" stop-color="#f97316" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Center deep glow -->
+    <radialGradient id="centerglow" cx="62%" cy="50%" r="40%" gradientUnits="objectBoundingBox">
+      <stop offset="0%"   stop-color="#f97316" stop-opacity="0.07"/>
+      <stop offset="100%" stop-color="#f97316" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Mark gradient (exact from brand) scaled large -->
+    <linearGradient id="markgrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#fb923c"/>
+      <stop offset="45%"  stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#c2410c"/>
+    </linearGradient>
+
+    <linearGradient id="markshine" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="rgba(255,255,255,0.18)"/>
+      <stop offset="45%"  stop-color="rgba(255,255,255,0.05)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+    </linearGradient>
+
+    <!--
+      Mark at 520px (5.2× scale) centered at ~1480,360
+      translate: tx=1480-(100*5.2/2)=1480-260=1220, ty=360-(100*5.2/2)=360-260=100
+      Bars:
+        Bar1: x=8*5.2+1220=1261.6  y=12*5.2+100=162.4  w=84*5.2=436.8  h=19*5.2=98.8  rx=4*5.2=20.8
+        Bar2: x=1261.6             y=40*5.2+100=308     w=436.8         h=98.8          rx=20.8
+        Bar3: x=1261.6             y=68*5.2+100=453.6   w=436.8         h=98.8          rx=20.8
+      Play:
+        30*5.2+1220=1376  10*5.2+100=152  → 1376,152
+        30*5.2+1220=1376  90*5.2+100=568  → 1376,568
+        80*5.2+1220=1636  50*5.2+100=360  → 1636,360
+    -->
+    <mask id="markmask">
+      <rect x="1261.6" y="162.4"  width="436.8" height="98.8" rx="20.8" fill="white"/>
+      <rect x="1261.6" y="308"    width="436.8" height="98.8" rx="20.8" fill="white"/>
+      <rect x="1261.6" y="453.6"  width="436.8" height="98.8" rx="20.8" fill="white"/>
+      <polygon points="1376,152 1376,568 1636,360" fill="black"/>
+    </mask>
+
+    <!-- Grid pattern -->
+    <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
+      <path d="M 60 0 L 0 0 0 60" fill="none" stroke="#ffffff" stroke-width="0.4" stroke-opacity="0.028"/>
+    </pattern>
+
+    <!-- Scanline pattern — gives it a broadcast/screen texture -->
+    <pattern id="scanlines" width="1" height="4" patternUnits="userSpaceOnUse">
+      <rect width="1" height="2" fill="#000000" fill-opacity="0.06"/>
+    </pattern>
+
+    <!-- Stage floor line gradient -->
+    <linearGradient id="floorline" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#f97316" stop-opacity="0"/>
+      <stop offset="25%"  stop-color="#f97316" stop-opacity="0.5"/>
+      <stop offset="60%"  stop-color="#f97316" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#f97316" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Spotlight cone -->
+    <linearGradient id="spotlight" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#f97316" stop-opacity="0.09"/>
+      <stop offset="100%" stop-color="#f97316" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Bottom fade to black for nav overlay -->
+    <linearGradient id="bottomfade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#000000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.55"/>
+    </linearGradient>
+
+    <!-- Horizontal rule glow -->
+    <linearGradient id="rulegrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#f97316" stop-opacity="0"/>
+      <stop offset="20%"  stop-color="#f97316" stop-opacity="0.8"/>
+      <stop offset="65%"  stop-color="#f97316" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#f97316" stop-opacity="0"/>
+    </linearGradient>
+
+  </defs>
+
+  <!-- ── BASE ── -->
+  <rect width="1920" height="720" fill="url(#bg)"/>
+  <rect width="1920" height="720" fill="url(#grid)"/>
+  <rect width="1920" height="720" fill="url(#scanlines)"/>
+
+  <!-- Atmosphere -->
+  <rect width="1920" height="720" fill="url(#orangeatmos)"/>
+  <rect width="1920" height="720" fill="url(#centerglow)"/>
+
+  <!-- ── SPOTLIGHT CONE — from top center-right down ── -->
+  <polygon points="1480,0 1320,0 960,720 1760,720" fill="url(#spotlight)"/>
+
+  <!-- ── STAGE FLOOR LINE ── -->
+  <rect x="0" y="648" width="1920" height="2" fill="url(#floorline)"/>
+
+  <!-- ── STACK PLAY MARK — massive watermark, right side ── -->
+  <!-- Outer glow ring -->
+  <ellipse cx="1480" cy="360" rx="340" ry="320" fill="#f97316" fill-opacity="0.04"/>
+  <ellipse cx="1480" cy="360" rx="270" ry="260" fill="#f97316" fill-opacity="0.04"/>
+
+  <!-- Mark bars masked by play arrow -->
+  <g mask="url(#markmask)" opacity="0.22">
+    <rect x="1220" y="100" width="520" height="520" fill="url(#markgrad)"/>
+    <rect x="1220" y="100" width="520" height="520" fill="url(#markshine)"/>
+  </g>
+
+  <!-- Play arrow ghost outline — more visible than bars to read as mark -->
+  <polygon points="1376,152 1376,568 1636,360"
+    fill="#f97316" fill-opacity="0.05"/>
+  <polygon points="1376,152 1376,568 1636,360"
+    fill="none" stroke="#fb923c" stroke-width="6"
+    stroke-linejoin="round" stroke-linecap="round" stroke-opacity="0.18"/>
+
+  <!-- ── GEOMETRIC DETAIL LINES — right quadrant ── -->
+  <!-- Thin horizontal accent lines, stacked like the bars -->
+  <rect x="900" y="262" width="680" height="2.5" rx="1.25" fill="#f97316" fill-opacity="0.12"/>
+  <rect x="900" y="358" width="680" height="2.5" rx="1.25" fill="#f97316" fill-opacity="0.12"/>
+  <rect x="900" y="454" width="680" height="2.5" rx="1.25" fill="#f97316" fill-opacity="0.12"/>
+
+  <!-- Diagonal slash — right edge energy -->
+  <polygon points="1780,0 1920,0 1920,720 1840,720" fill="#f97316" fill-opacity="0.04"/>
+  <polygon points="1840,0 1920,0 1920,720 1900,720" fill="#f97316" fill-opacity="0.04"/>
+
+  <!-- Left vertical accent -->
+  <rect x="0" y="0" width="4" height="720" fill="#f97316" fill-opacity="0.5"/>
+
+  <!-- ── CLAIM TEXT — right side, won't clash with left creator info ── -->
+  <!-- Large background text watermark -->
+  <text x="870" y="430"
+    font-family="'Barlow Condensed', Impact, sans-serif"
+    font-size="220" font-weight="800" font-style="italic"
+    letter-spacing="-4"
+    fill="#ffffff" fill-opacity="0.025">YOUR STAGE</text>
+
+  <!-- Claim label -->
+  <text x="900" y="230"
+    font-family="'Barlow Condensed', Impact, sans-serif"
+    font-size="13" font-weight="700" font-style="italic"
+    letter-spacing="6"
+    fill="#f97316" fill-opacity="0.7">UNCLAIMED PAGE</text>
+
+  <!-- Main claim headline -->
+  <text x="900" y="310"
+    font-family="'Barlow Condensed', Impact, sans-serif"
+    font-size="68" font-weight="800" font-style="italic"
+    letter-spacing="2"
+    fill="#ffffff" fill-opacity="0.72">This is your stage.</text>
+
+  <!-- Sub -->
+  <text x="902" y="358"
+    font-family="'Barlow Condensed', Impact, sans-serif"
+    font-size="24" font-weight="600" font-style="italic"
+    letter-spacing="2"
+    fill="#888888">Claim this page and start building your audience.</text>
+
+  <!-- Horizontal rule below sub -->
+  <rect x="900" y="375" width="420" height="2" rx="1" fill="url(#rulegrad)"/>
+
+  <!-- ── LEFT SIDE VIGNETTE — keeps creator info readable ── -->
+  <rect width="1920" height="720" fill="url(#leftvignette)"/>
+
+  <!-- Bottom fade -->
+  <rect width="1920" height="720" fill="url(#bottomfade)"/>
+
+</svg>
