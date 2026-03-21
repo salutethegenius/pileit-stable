@@ -47,7 +47,8 @@ function RegisterForm() {
     setLoading(true);
     try {
       await register(email, password, displayName);
-      router.push(nextPath);
+      const destination = nextPath !== "/" ? nextPath : "/browse";
+      router.push(destination);
     } catch {
       setErr("Could not create account. Try a different email.");
     } finally {
@@ -127,9 +128,9 @@ function RegisterForm() {
             Create account
           </Button>
         </form>
-        <Typography sx={{ mt: 2 }} color="text.secondary">
+        <Typography sx={{ mt: 2 }} color="text.secondary" component="div">
           Already have an account?{" "}
-          <Link href={loginHref} style={{ color: "#fb923c" }}>
+          <Link href={loginHref} style={{ color: "#fb923c", whiteSpace: "nowrap" }}>
             Log in
           </Link>
         </Typography>
