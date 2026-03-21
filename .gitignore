@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Secrets and local env (commit only *.env.example)
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# OS / editor
+.DS_Store
+*.swp
+.idea/
+
+# Local SQLite (use PostgreSQL in production)
+*.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Python (if any)
+__pycache__/
+*.pyc
+.venv/

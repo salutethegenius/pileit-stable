@@ -1,0 +1,13 @@
+{
+  "name": "pileit-alpha",
+  "private": true,
+  "description": "PileIt monorepo — run verify before releases",
+  "scripts": {
+    "verify": "npm run verify --prefix apps/web",
+    "verify:web": "npm run verify --prefix apps/web",
+    "verify:all": "bash scripts/verify-all.sh",
+    "dev:web": "npm run dev --prefix apps/web",
+    "dev:api": "bash scripts/dev-api-portless.sh",
+    "dev": "echo \"Use in two terminals: npm run dev:api  and  npm run dev:web  (requires: npm i -g portless)\""
+  }
+}

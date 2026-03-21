@@ -1,0 +1,92 @@
+import type { PileItVideo } from "@/types/content";
+import { IMG } from "@/lib/imageUrls";
+
+/** Backend GET /videos row shape */
+export type ApiVideoRow = {
+  id: string;
+  title: string;
+  description: string | null;
+  thumbnail_url: string | null;
+  backdrop_url?: string | null;
+  video_url: string | null;
+  duration_seconds: number;
+  category?: string | null;
+  is_locked: boolean;
+  view_count: number;
+  tip_total?: number;
+  creator: {
+    id: string;
+    handle: string;
+    display_name: string;
+    verified: boolean;
+    accent_color: string;
+    avatar_url: string;
+    subscriber_count: number;
+    subscription_price?: number | null;
+    monetization_eligible?: boolean;
+  };
+  created_at?: string;
+};
+
+/** GET /videos/{id} adds counts; list rows omit these */
+export type ApiVideoDetailRow = ApiVideoRow & {
+  tip_count?: number;
+  pile_count?: number;
+  share_count?: number;
+};
+
+export function mapApiToPileItVideo(row: ApiVideoRow): PileItVideo {
+  return mapApiVideoToPileItVideoInternal(row, {});
+}
+
+export function mapApiVideoDetailToPileItVideo(row: ApiVideoDetailRow): PileItVideo {
+  return mapApiVideoToPileItVideoInternal(row, {
+    tipCount: row.tip_count ?? row.tip_total ?? 0,
+    pileCount: row.pile_count ?? 0,
+    shareCount: row.share_count ?? 0,
+  });
+}
+
+function mapApiVideoToPileItVideoInternal(
+  row: ApiVideoRow,
+  overrides: {
+    tipCount?: number;
+    pileCount?: number;
+    shareCount?: number;
+  }
+): PileItVideo {
+  const thumb = row.thumbnail_url || "";
+  const back = row.backdrop_url || row.thumbnail_url || "";
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description ?? "",
+    thumbnailUrl: thumb ? IMG.cardThumb(thumb) : "",
+    backdropUrl: back ? IMG.heroBackdrop(back) : "",
+    videoUrl: row.video_url || undefined,
+    durationSeconds: row.duration_seconds ?? 0,
+    category: row.category ?? "",
+    isLocked: Boolean(row.is_locked),
+    viewCount: row.view_count,
+    tipCount: overrides.tipCount ?? row.tip_total ?? 0,
+    pileCount: overrides.pileCount ?? 0,
+    shareCount: overrides.shareCount ?? 0,
+    creator: {
+      id: row.creator.id,
+      handle: row.creator.handle || "",
+      displayName: row.creator.display_name,
+      verified: row.creator.verified,
+      accentColor: row.creator.accent_color,
+      avatarUrl: row.creator.avatar_url
+        ? IMG.avatar(row.creator.avatar_url)
+        : "",
+      subscriberCount: row.creator.subscriber_count,
+      subscriptionPrice:
+        row.creator.monetization_eligible === false
+          ? undefined
+          : row.creator.subscription_price ?? undefined,
+      monetizationEligible: row.creator.monetization_eligible === true,
+    },
+    createdAt: row.created_at || new Date().toISOString(),
+  };
+}

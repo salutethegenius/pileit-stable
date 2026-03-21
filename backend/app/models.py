@@ -1,0 +1,300 @@
+from __future__ import annotations
+
+import uuid
+from datetime import datetime
+from decimal import Decimal
+from typing import Optional
+
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Integer,
+    Numeric,
+    String,
+    Text,
+    JSON,
+    UniqueConstraint,
+)
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.database import Base
+
+
+def _uuid():
+    return str(uuid.uuid4())
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    display_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    handle: Mapped[Optional[str]] = mapped_column(String(64), unique=True, nullable=True)
+    avatar_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    account_type: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="viewer"
+    )
+    accent_color: Mapped[str] = mapped_column(String(16), default="#f97316")
+    bio: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow
+    )
+
+    creator_profile: Mapped[Optional["CreatorProfile"]] = relationship(
+        back_populates="user", uselist=False
+    )
+
+
+class CreatorProfile(Base):
+    __tablename__ = "creator_profiles"
+
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id"), primary_key=True
+    )
+    verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    category: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    subscription_price: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(10, 2), nullable=True
+    )
+    banner_color: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
+    hero_image_url: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
+    total_tips_received: Mapped[Decimal] = mapped_column(
+        Numeric(12, 2), default=Decimal("0")
+    )
+    social_links: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    # Payouts: tips/subs/store checkout credit this creator only when True (after KYC admin approval).
+    monetization_eligible: Mapped[bool] = mapped_column(Boolean, default=False)
+    payout_status: Mapped[str] = mapped_column(
+        String(32), default="not_started"
+    )  # not_started | submitted | approved | rejected
+    kyc_id_document_url: Mapped[Optional[str]] = mapped_column(
+        String(1024), nullable=True
+    )
+    kyc_selfie_url: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
+    payout_provider: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    payout_account_detail: Mapped[Optional[str]] = mapped_column(
+        String(512), nullable=True
+    )
+    kyc_submitted_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    kyc_reviewed_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    kyc_reviewed_by: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+    monetization_reject_reason: Mapped[Optional[str]] = mapped_column(
+        Text, nullable=True
+    )
+    # Channel claim (unclaimed stub → email + Instagram DM → intro → live)
+    claim_status: Mapped[Optional[str]] = mapped_column(
+        String(32), nullable=True
+    )  # unclaimed | email_verified | identity_review | social_verified | live
+    claim_pending_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    claim_email_token_hash: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    claim_email_token_expires_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    verification_social_url: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
+    verification_social_method: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    verification_social_code: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    verification_social_code_expires_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    verification_social_verified_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    verification_social_ig_user_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    verification_email_verified_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    verification_attempt_count_email: Mapped[int] = mapped_column(Integer, default=0)
+    verification_attempt_count_social: Mapped[int] = mapped_column(Integer, default=0)
+    verification_social_last_attempt_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    verification_email_last_attempt_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    claim_initiated_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    claimed_by_user_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+
+    user: Mapped["User"] = relationship(back_populates="creator_profile")
+
+
+class CreatorApplication(Base):
+    __tablename__ = "creator_applications"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"))
+    social_links: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    channels_json: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
+    mission_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    content_plan_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    primary_category: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    status: Mapped[str] = mapped_column(String(32), default="pending")
+    submitted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow
+    )
+    reviewed_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    reviewed_by: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("users.id"), nullable=True
+    )
+
+
+class Video(Base):
+    __tablename__ = "videos"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    creator_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"))
+    title: Mapped[str] = mapped_column(String(512), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    video_url: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
+    thumbnail_url: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
+    duration_seconds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    category: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    is_locked: Mapped[bool] = mapped_column(Boolean, default=False)
+    status: Mapped[str] = mapped_column(String(32), default="draft")
+    view_count: Mapped[int] = mapped_column(Integer, default=0)
+    tip_total: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0"))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow
+    )
+
+
+class Subscription(Base):
+    __tablename__ = "subscriptions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    subscriber_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"))
+    creator_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"))
+    status: Mapped[str] = mapped_column(String(32), default="active")
+    started_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow
+    )
+    expires_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    monthly_amount: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 2))
+
+
+class Tip(Base):
+    __tablename__ = "tips"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    sender_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"))
+    creator_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"))
+    video_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("videos.id"), nullable=True
+    )
+    amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
+    kemispay_tx_id: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow
+    )
+
+
+class PileComment(Base):
+    __tablename__ = "pile_comments"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    video_id: Mapped[str] = mapped_column(String(36), ForeignKey("videos.id"))
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"))
+    parent_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("pile_comments.id"), nullable=True
+    )
+    comment_type: Mapped[str] = mapped_column(String(16), nullable=False)
+    content: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    media_url: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
+    duration_seconds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    like_count: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow
+    )
+
+
+class StoreProduct(Base):
+    __tablename__ = "store_products"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    creator_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"))
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    price: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
+    image_url: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
+    product_type: Mapped[str] = mapped_column(String(32), default="digital")
+    stock_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class Watchlist(Base):
+    __tablename__ = "watchlist"
+    __table_args__ = (UniqueConstraint("user_id", "video_id", name="uq_watch"),)
+
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), primary_key=True)
+    video_id: Mapped[str] = mapped_column(String(36), ForeignKey("videos.id"), primary_key=True)
+    added_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow
+    )
+
+
+class LiveChatMessage(Base):
+    __tablename__ = "live_chat_messages"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    video_id: Mapped[str] = mapped_column(String(36), ForeignKey("videos.id"))
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"))
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow
+    )
+
+
+class RevokedToken(Base):
+    """Refresh tokens rejected after logout (hash-only, no raw token stored)."""
+
+    __tablename__ = "revoked_tokens"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow
+    )
+
+
+class ContentReport(Base):
+    """User-submitted moderation flags; admin reviews via /admin/moderation."""
+
+    __tablename__ = "content_reports"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    reporter_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"))
+    target_type: Mapped[str] = mapped_column(
+        String(24), nullable=False
+    )  # video | pile_comment | live_chat
+    target_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    reason: Mapped[str] = mapped_column(String(64), nullable=False)
+    details: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(
+        String(24), nullable=False, default="pending"
+    )  # pending | dismissed | resolved
+    resolution_action: Mapped[Optional[str]] = mapped_column(
+        String(32), nullable=True
+    )  # none | unpublish_video | delete_pile | delete_chat
+    reviewed_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    reviewed_by: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("users.id"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow
+    )
