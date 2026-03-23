@@ -110,7 +110,7 @@ def list_creators(db: Session = Depends(get_db)):
     q = (
         db.query(models.User)
         .join(models.CreatorProfile, models.CreatorProfile.user_id == models.User.id)
-        .filter(models.User.account_type == "creator")
+        .filter(models.User.account_type.in_(("creator", "admin")))
         .order_by(desc(models.User.created_at))
     )
     out = []
@@ -337,7 +337,7 @@ def update_creator_me(
 @router.get("/{handle}")
 def creator_detail(handle: str, db: Session = Depends(get_db)):
     u = db.query(models.User).filter(models.User.handle == handle).first()
-    if not u or u.account_type != "creator":
+    if not u or u.account_type not in ("creator", "admin"):
         raise HTTPException(404, "Not found")
     prof = u.creator_profile
     pub = _creator_public_fields(prof)

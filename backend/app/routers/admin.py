@@ -275,7 +275,7 @@ def list_creators_admin(
     q = (
         db.query(models.User)
         .join(models.CreatorProfile, models.CreatorProfile.user_id == models.User.id)
-        .filter(models.User.account_type == "creator")
+        .filter(models.User.account_type.in_(("creator", "admin")))
     )
     out = []
     for u in q.all():
@@ -319,6 +319,68 @@ class CreatorVerifiedBody(BaseModel):
     verified: bool
 
 
+class CreatorDeleteBody(BaseModel):
+    reason: str | None = Field(None, max_length=2000)
+
+
+def _serialize_dt(v):
+    if isinstance(v, datetime):
+        return v.isoformat()
+    return v
+
+
+def _snapshot_creator_profile(prof: models.CreatorProfile) -> dict:
+    return {
+        "verified": bool(prof.verified),
+        "category": prof.category,
+        "subscription_price": float(prof.subscription_price)
+        if prof.subscription_price is not None
+        else None,
+        "banner_color": prof.banner_color,
+        "hero_image_url": prof.hero_image_url,
+        "total_tips_received": float(prof.total_tips_received or 0),
+        "social_links": prof.social_links,
+        "monetization_eligible": bool(prof.monetization_eligible),
+        "payout_status": prof.payout_status,
+        "kyc_id_document_url": prof.kyc_id_document_url,
+        "kyc_selfie_url": prof.kyc_selfie_url,
+        "payout_provider": prof.payout_provider,
+        "payout_account_detail": prof.payout_account_detail,
+        "kyc_submitted_at": _serialize_dt(prof.kyc_submitted_at),
+        "kyc_reviewed_at": _serialize_dt(prof.kyc_reviewed_at),
+        "kyc_reviewed_by": prof.kyc_reviewed_by,
+        "monetization_reject_reason": prof.monetization_reject_reason,
+        "claim_status": prof.claim_status,
+        "claim_pending_email": prof.claim_pending_email,
+        "claim_email_token_hash": prof.claim_email_token_hash,
+        "claim_email_token_expires_at": _serialize_dt(prof.claim_email_token_expires_at),
+        "verification_social_url": prof.verification_social_url,
+        "verification_social_method": prof.verification_social_method,
+        "verification_social_code": prof.verification_social_code,
+        "verification_social_code_expires_at": _serialize_dt(prof.verification_social_code_expires_at),
+        "verification_social_verified_at": _serialize_dt(prof.verification_social_verified_at),
+        "verification_social_ig_user_id": prof.verification_social_ig_user_id,
+        "verification_email_verified_at": _serialize_dt(prof.verification_email_verified_at),
+        "verification_attempt_count_email": int(prof.verification_attempt_count_email or 0),
+        "verification_attempt_count_social": int(prof.verification_attempt_count_social or 0),
+        "verification_social_last_attempt_at": _serialize_dt(prof.verification_social_last_attempt_at),
+        "verification_email_last_attempt_at": _serialize_dt(prof.verification_email_last_attempt_at),
+        "claim_initiated_at": _serialize_dt(prof.claim_initiated_at),
+        "claimed_by_user_id": prof.claimed_by_user_id,
+    }
+
+
+def _parse_dt(v):
+    if not v:
+        return None
+    if isinstance(v, str):
+        try:
+            return datetime.fromisoformat(v)
+        except ValueError:
+            return None
+    return None
+
+
 @router.post("/creators/{user_id}/verified")
 def set_creator_verified(
     user_id: str,
@@ -327,7 +389,7 @@ def set_creator_verified(
     db: Session = Depends(get_db),
 ):
     u = db.get(models.User, user_id)
-    if not u or u.account_type != "creator":
+    if not u or u.account_type not in ("creator", "admin"):
         raise HTTPException(404, "Not found")
     prof = u.creator_profile
     if not prof:
@@ -335,6 +397,181 @@ def set_creator_verified(
     prof.verified = body.verified
     db.commit()
     return {"ok": True, "verified": prof.verified}
+
+
+@router.delete("/creators/{user_id}")
+def delete_creator_account(
+    user_id: str,
+    body: CreatorDeleteBody,
+    admin: Annotated[models.User, Depends(require_admin)],
+    db: Session = Depends(get_db),
+):
+    """
+    Reversible creator deactivation. Preserves user, logs snapshot for restore.
+    """
+    u = db.get(models.User, user_id)
+    if not u:
+        raise HTTPException(404, "Not found")
+    prof = u.creator_profile
+    if not prof:
+        raise HTTPException(400, "No creator profile")
+
+    videos = (
+        db.query(models.Video)
+        .filter(models.Video.creator_id == u.id)
+        .all()
+    )
+    active_subs = (
+        db.query(models.Subscription)
+        .filter(
+            models.Subscription.creator_id == u.id,
+            models.Subscription.status == "active",
+        )
+        .all()
+    )
+    snapshot = {
+        "profile": _snapshot_creator_profile(prof),
+        "video_statuses": [{"id": v.id, "status": v.status} for v in videos],
+        "active_subscription_ids": [s.id for s in active_subs],
+    }
+    db.add(
+        models.CreatorAccountDeletionLog(
+            user_id=u.id,
+            deleted_by=admin.id,
+            reason=(body.reason or "").strip() or None,
+            snapshot_json=snapshot,
+        )
+    )
+
+    # De-list channel content and stop future creator-only flows.
+    for v in videos:
+        v.status = "draft"
+    for s in active_subs:
+        s.status = "cancelled"
+
+    db.delete(prof)
+    u.account_type = "viewer"
+    db.commit()
+    return {"ok": True}
+
+
+@router.get("/creators/deleted")
+def list_deleted_creators(
+    _: Annotated[models.User, Depends(require_admin)],
+    db: Session = Depends(get_db),
+):
+    logs = (
+        db.query(models.CreatorAccountDeletionLog)
+        .filter(models.CreatorAccountDeletionLog.restored_at.is_(None))
+        .order_by(models.CreatorAccountDeletionLog.deleted_at.desc())
+        .all()
+    )
+    out = []
+    for l in logs:
+        u = db.get(models.User, l.user_id)
+        out.append(
+            {
+                "log_id": l.id,
+                "user_id": l.user_id,
+                "display_name": u.display_name if u else "",
+                "email": u.email if u else "",
+                "handle": (u.handle if u else "") or "",
+                "deleted_at": l.deleted_at.isoformat() if l.deleted_at else "",
+                "reason": l.reason,
+            }
+        )
+    return out
+
+
+@router.post("/creators/{user_id}/restore")
+def restore_creator_account(
+    user_id: str,
+    admin: Annotated[models.User, Depends(require_admin)],
+    db: Session = Depends(get_db),
+):
+    u = db.get(models.User, user_id)
+    if not u:
+        raise HTTPException(404, "Not found")
+    if u.creator_profile:
+        raise HTTPException(400, "Creator profile already exists")
+
+    log = (
+        db.query(models.CreatorAccountDeletionLog)
+        .filter(
+            models.CreatorAccountDeletionLog.user_id == user_id,
+            models.CreatorAccountDeletionLog.restored_at.is_(None),
+        )
+        .order_by(models.CreatorAccountDeletionLog.deleted_at.desc())
+        .first()
+    )
+    if not log:
+        raise HTTPException(404, "No deleted creator record found")
+
+    snap = log.snapshot_json or {}
+    p = snap.get("profile") or {}
+
+    db.add(
+        models.CreatorProfile(
+            user_id=u.id,
+            verified=bool(p.get("verified", False)),
+            category=p.get("category"),
+            subscription_price=p.get("subscription_price"),
+            banner_color=p.get("banner_color"),
+            hero_image_url=p.get("hero_image_url"),
+            total_tips_received=p.get("total_tips_received") or 0,
+            social_links=p.get("social_links"),
+            monetization_eligible=bool(p.get("monetization_eligible", False)),
+            payout_status=p.get("payout_status") or "not_started",
+            kyc_id_document_url=p.get("kyc_id_document_url"),
+            kyc_selfie_url=p.get("kyc_selfie_url"),
+            payout_provider=p.get("payout_provider"),
+            payout_account_detail=p.get("payout_account_detail"),
+            kyc_submitted_at=_parse_dt(p.get("kyc_submitted_at")),
+            kyc_reviewed_at=_parse_dt(p.get("kyc_reviewed_at")),
+            kyc_reviewed_by=p.get("kyc_reviewed_by"),
+            monetization_reject_reason=p.get("monetization_reject_reason"),
+            claim_status=p.get("claim_status"),
+            claim_pending_email=p.get("claim_pending_email"),
+            claim_email_token_hash=p.get("claim_email_token_hash"),
+            claim_email_token_expires_at=_parse_dt(p.get("claim_email_token_expires_at")),
+            verification_social_url=p.get("verification_social_url"),
+            verification_social_method=p.get("verification_social_method"),
+            verification_social_code=p.get("verification_social_code"),
+            verification_social_code_expires_at=_parse_dt(
+                p.get("verification_social_code_expires_at")
+            ),
+            verification_social_verified_at=_parse_dt(p.get("verification_social_verified_at")),
+            verification_social_ig_user_id=p.get("verification_social_ig_user_id"),
+            verification_email_verified_at=_parse_dt(p.get("verification_email_verified_at")),
+            verification_attempt_count_email=int(p.get("verification_attempt_count_email") or 0),
+            verification_attempt_count_social=int(
+                p.get("verification_attempt_count_social") or 0
+            ),
+            verification_social_last_attempt_at=_parse_dt(
+                p.get("verification_social_last_attempt_at")
+            ),
+            verification_email_last_attempt_at=_parse_dt(
+                p.get("verification_email_last_attempt_at")
+            ),
+            claim_initiated_at=_parse_dt(p.get("claim_initiated_at")),
+            claimed_by_user_id=p.get("claimed_by_user_id"),
+        )
+    )
+
+    for item in snap.get("video_statuses") or []:
+        vid = db.get(models.Video, item.get("id"))
+        if vid and vid.creator_id == user_id and item.get("status"):
+            vid.status = str(item["status"])
+    for sid in snap.get("active_subscription_ids") or []:
+        s = db.get(models.Subscription, sid)
+        if s and s.creator_id == user_id:
+            s.status = "active"
+
+    u.account_type = "creator"
+    log.restored_at = datetime.now(timezone.utc)
+    log.restored_by = admin.id
+    db.commit()
+    return {"ok": True}
 
 
 def _moderation_report_row(db: Session, r: models.ContentReport) -> dict:

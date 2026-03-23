@@ -84,6 +84,16 @@ type AdminCreator = {
   payout_status: string;
 };
 
+type DeletedCreator = {
+  log_id: string;
+  user_id: string;
+  display_name: string;
+  email: string;
+  handle: string;
+  deleted_at: string;
+  reason: string | null;
+};
+
 type MonetizationPending = {
   user_id: string;
   email: string;
@@ -125,6 +135,7 @@ export default function AdminPageClient() {
     { id: string; email: string; display_name: string; account_type: string }[]
   >([]);
   const [creators, setCreators] = useState<AdminCreator[]>([]);
+  const [deletedCreators, setDeletedCreators] = useState<DeletedCreator[]>([]);
   const [monPending, setMonPending] = useState<MonetizationPending[]>([]);
   const [modReports, setModReports] = useState<ModReport[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -154,6 +165,7 @@ export default function AdminPageClient() {
           { id: string; email: string; display_name: string; account_type: string }[]
         >("/admin/users", { accessToken }),
         apiFetch<AdminCreator[]>("/admin/creators", { accessToken }),
+        apiFetch<DeletedCreator[]>("/admin/creators/deleted", { accessToken }),
         apiFetch<MonetizationPending[]>("/admin/monetization/pending", { accessToken }),
         apiFetch<ModReport[]>("/admin/moderation/reports?status=pending", { accessToken }),
       ]);
@@ -162,6 +174,7 @@ export default function AdminPageClient() {
         "Stats",
         "Users",
         "Creators",
+        "Deleted creators",
         "Monetization queue",
         "Moderation",
       ] as const;
@@ -194,18 +207,25 @@ export default function AdminPageClient() {
           `${labels[3]}: ${results[3].reason instanceof Error ? results[3].reason.message : String(results[3].reason)}`
         );
       }
-      if (results[4].status === "fulfilled") setMonPending(results[4].value);
+      if (results[4].status === "fulfilled") setDeletedCreators(results[4].value);
       else {
-        setMonPending([]);
+        setDeletedCreators([]);
         errs.push(
           `${labels[4]}: ${results[4].reason instanceof Error ? results[4].reason.message : String(results[4].reason)}`
         );
       }
-      if (results[5].status === "fulfilled") setModReports(results[5].value);
+      if (results[5].status === "fulfilled") setMonPending(results[5].value);
+      else {
+        setMonPending([]);
+        errs.push(
+          `${labels[5]}: ${results[5].reason instanceof Error ? results[5].reason.message : String(results[5].reason)}`
+        );
+      }
+      if (results[6].status === "fulfilled") setModReports(results[6].value);
       else {
         setModReports([]);
         errs.push(
-          `${labels[5]}: ${results[5].reason instanceof Error ? results[5].reason.message : String(results[5].reason)}`
+          `${labels[6]}: ${results[6].reason instanceof Error ? results[6].reason.message : String(results[6].reason)}`
         );
       }
       if (errs.length) setLoadError(errs.join(" · "));
@@ -280,6 +300,37 @@ export default function AdminPageClient() {
       method: "POST",
       accessToken,
       body: JSON.stringify({ verified }),
+    });
+    load();
+  };
+
+  const deleteCreator = async (userId: string, displayName: string) => {
+    if (!accessToken) return;
+    const reason = window.prompt(
+      `Reason for deleting creator "${displayName}"? (optional, saved in audit log)`
+    );
+    if (reason === null) return;
+    const ok = window.confirm(
+      `Delete creator "${displayName}"?\n\nThis will remove creator privileges, unpublish their videos, and cancel active subscriptions.`
+    );
+    if (!ok) return;
+    await apiFetch(`/admin/creators/${userId}`, {
+      method: "DELETE",
+      accessToken,
+      body: JSON.stringify({ reason: reason.trim() || null }),
+    });
+    load();
+  };
+
+  const restoreCreator = async (userId: string, displayName: string) => {
+    if (!accessToken) return;
+    const ok = window.confirm(
+      `Restore creator "${displayName}"?\n\nThis will restore their creator profile and reactivate previous creator visibility.`
+    );
+    if (!ok) return;
+    await apiFetch(`/admin/creators/${userId}/restore`, {
+      method: "POST",
+      accessToken,
     });
     load();
   };
@@ -502,6 +553,7 @@ export default function AdminPageClient() {
             <TableCell align="right">Videos</TableCell>
             <TableCell align="right">Subscribers</TableCell>
             <TableCell>Verified (blue badge)</TableCell>
+            <TableCell>Creator account</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -535,8 +587,61 @@ export default function AdminPageClient() {
                   </Button>
                 </Stack>
               </TableCell>
+              <TableCell>
+                <Button
+                  size="small"
+                  color="error"
+                  onClick={() => void deleteCreator(c.id, c.display_name)}
+                >
+                  Delete creator
+                </Button>
+              </TableCell>
             </TableRow>
           ))}
+        </TableBody>
+      </Table>
+
+      <Typography component="h2" variant="h6" sx={{ mt: 1, mb: 1 }}>
+        Deleted creators (reversible)
+      </Typography>
+      <Table size="small" sx={{ mb: 4 }}>
+        <TableHead>
+          <TableRow>
+            <TableCell>Name</TableCell>
+            <TableCell>Handle</TableCell>
+            <TableCell>Email</TableCell>
+            <TableCell>Deleted at</TableCell>
+            <TableCell>Reason</TableCell>
+            <TableCell>Actions</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {deletedCreators.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={6}>
+                <Typography variant="body2" color="text.secondary">
+                  No deleted creators.
+                </Typography>
+              </TableCell>
+            </TableRow>
+          ) : (
+            deletedCreators.map((d) => (
+              <TableRow key={d.log_id}>
+                <TableCell>{d.display_name}</TableCell>
+                <TableCell>@{d.handle || "—"}</TableCell>
+                <TableCell>{d.email}</TableCell>
+                <TableCell sx={{ whiteSpace: "nowrap" }}>
+                  {d.deleted_at ? new Date(d.deleted_at).toLocaleString() : "—"}
+                </TableCell>
+                <TableCell>{d.reason || "—"}</TableCell>
+                <TableCell>
+                  <Button size="small" onClick={() => void restoreCreator(d.user_id, d.display_name)}>
+                    Restore
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))
+          )}
         </TableBody>
       </Table>
 
