@@ -13,6 +13,7 @@ from app.config import settings
 from app.database import get_db
 from app import models
 from app.deps import require_admin
+from app.security import hash_password
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -319,6 +320,10 @@ class CreatorVerifiedBody(BaseModel):
     verified: bool
 
 
+class UserPasswordResetBody(BaseModel):
+    password: str = Field(..., min_length=8, max_length=128)
+
+
 class CreatorDeleteBody(BaseModel):
     reason: str | None = Field(None, max_length=2000)
 
@@ -397,6 +402,23 @@ def set_creator_verified(
     prof.verified = body.verified
     db.commit()
     return {"ok": True, "verified": prof.verified}
+
+
+@router.post("/users/{user_id}/password")
+def admin_reset_user_password(
+    user_id: str,
+    body: UserPasswordResetBody,
+    admin: Annotated[models.User, Depends(require_admin)],
+    db: Session = Depends(get_db),
+):
+    u = db.get(models.User, user_id)
+    if not u:
+        raise HTTPException(404, "Not found")
+    if u.id == admin.id:
+        raise HTTPException(400, "Use profile flow to change your own password")
+    u.password_hash = hash_password(body.password)
+    db.commit()
+    return {"ok": True}
 
 
 @router.delete("/creators/{user_id}")

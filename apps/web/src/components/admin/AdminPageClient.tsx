@@ -344,6 +344,23 @@ export default function AdminPageClient() {
     load();
   };
 
+  const resetUserPassword = async (userId: string, email: string) => {
+    if (!accessToken) return;
+    const pw = window.prompt(`Set a new password for ${email} (min 8 chars):`);
+    if (pw === null) return;
+    const next = pw.trim();
+    if (next.length < 8) {
+      window.alert("Password must be at least 8 characters.");
+      return;
+    }
+    await apiFetch(`/admin/users/${userId}/password`, {
+      method: "POST",
+      accessToken,
+      body: JSON.stringify({ password: next }),
+    });
+    window.alert(`Password updated for ${email}.`);
+  };
+
   const resolveModReport = async (
     reportId: string,
     action: "acknowledge" | "unpublish_video" | "delete_pile" | "delete_chat"
@@ -758,6 +775,7 @@ export default function AdminPageClient() {
             <TableCell>Email</TableCell>
             <TableCell>Name</TableCell>
             <TableCell>Type</TableCell>
+            <TableCell>Actions</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -766,6 +784,15 @@ export default function AdminPageClient() {
               <TableCell>{u.email}</TableCell>
               <TableCell>{u.display_name}</TableCell>
               <TableCell>{u.account_type}</TableCell>
+              <TableCell>
+                <Button
+                  size="small"
+                  onClick={() => void resetUserPassword(u.id, u.email)}
+                  sx={{ textTransform: "none" }}
+                >
+                  Reset password
+                </Button>
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
