@@ -364,7 +364,7 @@ export default function DashboardPageClient() {
               variant="contained"
               sx={{ mb: 2, textTransform: "none" }}
             >
-              Upload new video
+              Upload to PileIt
             </Button>
             <Table size="small">
               <TableHead>

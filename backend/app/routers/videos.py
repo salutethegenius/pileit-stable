@@ -131,7 +131,7 @@ def create_mux_direct_upload(
     mux_upload_id = mux_data.get("id")
     upload_url = mux_data.get("url")
     if not mux_upload_id or not upload_url:
-        raise HTTPException(502, "Mux did not return upload id or URL")
+        raise HTTPException(502, "Upload couldn’t be started. Please try again.")
     v = models.Video(
         creator_id=user.id,
         title=title,
@@ -183,7 +183,7 @@ def mux_upload_poll_status(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(502, f"Mux upload lookup failed: {e!s}") from e
+        raise HTTPException(502, "Upload status check failed. Please try again.") from e
 
     u_status = (up.get("status") or "").strip()
 
@@ -196,7 +196,7 @@ def mux_upload_poll_status(
         db.commit()
         return {
             "status": "error",
-            "message": f"Mux direct upload {u_status}",
+            "message": f"Upload failed ({u_status}).",
             "video_id": v.id,
         }
 
@@ -212,7 +212,7 @@ def mux_upload_poll_status(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(502, f"Mux asset lookup failed: {e!s}") from e
+        raise HTTPException(502, "Video processing status check failed. Please try again.") from e
 
     ast_status = (asset.get("status") or "").strip()
     if ast_status == "errored":
@@ -221,7 +221,7 @@ def mux_upload_poll_status(
         db.commit()
         return {
             "status": "error",
-            "message": "Mux asset encoding failed",
+            "message": "Video processing failed.",
             "video_id": v.id,
         }
 

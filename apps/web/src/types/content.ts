@@ -28,9 +28,9 @@ export interface PileItVideo {
   description: string;
   thumbnailUrl: string;
   backdropUrl?: string;
-  /** Mux playback ID for @mux/mux-player-react */
+  /** Streaming playback ID used by the in-app video player */
   playbackId?: string;
-  /** Legacy direct file/stream URL (optional during Mux migration) */
+  /** Legacy direct file/stream URL (optional) */
   videoUrl?: string;
   durationSeconds: number;
   category: string;

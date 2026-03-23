@@ -327,7 +327,8 @@ export default function CreatorClaimModal({ open, onClose, handle, claimStatus }
           {step === 2 ? (
             <>
               <Typography variant="body2" color="text.secondary">
-                Set your password and add your intro video (HTTPS URL). You can swap in Mux later.
+                Set your password and add your intro video (HTTPS URL). You can upload more from your
+                PileIt dashboard later.
               </Typography>
               <TextField
                 label="Password (min 8 characters)"

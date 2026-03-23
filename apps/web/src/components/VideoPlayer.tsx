@@ -5,7 +5,7 @@ import MuxPlayer from "@mux/mux-player-react";
 import type { ComponentProps, CSSProperties } from "react";
 
 export type VideoPlayerProps = {
-  /** Mux playback ID (public playback ID from Mux Video) */
+  /** PileIt / streaming playback ID for this video */
   playbackId: string;
   poster?: string;
   accentColor?: string;
@@ -14,8 +14,7 @@ export type VideoPlayerProps = {
 } & Omit<ComponentProps<typeof MuxPlayer>, "playbackId" | "poster" | "accentColor">;
 
 /**
- * Reusable Mux Player wrapper — 16:9 responsive shell aligned with the prior HTML5 player layout.
- * Drop in anywhere with a `playbackId`; optional `metadata` and other props pass through to `<MuxPlayer />`.
+ * PileIt video player — 16:9 responsive shell. Pass a `playbackId` from your video record.
  */
 export default function VideoPlayer({
   playbackId,

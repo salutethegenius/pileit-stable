@@ -2,27 +2,32 @@
 
 from __future__ import annotations
 
+import logging
+
 import httpx
 from fastapi import HTTPException
 
 from app.config import settings
 
+logger = logging.getLogger(__name__)
+
 MUX_API_BASE = "https://api.mux.com/video/v1"
+
+# End-user-safe API messages (no provider env names or internal URLs in JSON detail).
+_MSG_UPLOAD_UNAVAILABLE = "Upload isn’t available right now. Please try again later."
+_MSG_UPLOAD_FAILED = "Upload couldn’t be completed. Please try again."
 
 
 def mux_credentials() -> tuple[str, str]:
     token_id = (settings.mux_token_id or "").strip()
     secret = (settings.mux_token_secret or "").strip()
     if not token_id or not secret:
-        raise HTTPException(
-            status_code=503,
-            detail="Mux API is not configured. Set MUX_TOKEN_ID and MUX_TOKEN_SECRET.",
-        )
+        raise HTTPException(status_code=503, detail=_MSG_UPLOAD_UNAVAILABLE)
     return (token_id, secret)
 
 
 def _mux_http_error(resp: httpx.Response) -> None:
-    detail = f"Mux API HTTP {resp.status_code}"
+    detail = f"HTTP {resp.status_code}"
     try:
         payload = resp.json()
         err = payload.get("error")
@@ -37,7 +42,8 @@ def _mux_http_error(resp: httpx.Response) -> None:
     except Exception:
         if resp.text:
             detail = f"{detail}: {resp.text[:400]}"
-    raise HTTPException(status_code=502, detail=detail)
+    logger.warning("Video upload provider error: %s", detail)
+    raise HTTPException(status_code=502, detail=_MSG_UPLOAD_FAILED)
 
 
 def mux_create_direct_upload(*, cors_origin: str | None) -> dict:
@@ -59,7 +65,8 @@ def mux_create_direct_upload(*, cors_origin: str | None) -> dict:
     try:
         payload = r.json()
     except ValueError:
-        raise HTTPException(status_code=502, detail="Mux returned invalid JSON for create upload")
+        logger.warning("Video upload provider returned invalid JSON (create upload)")
+        raise HTTPException(status_code=502, detail=_MSG_UPLOAD_FAILED)
     data = payload.get("data") if isinstance(payload, dict) else None
     return data if isinstance(data, dict) else {}
 
@@ -73,7 +80,8 @@ def mux_get_upload(upload_id: str) -> dict:
     try:
         payload = r.json()
     except ValueError:
-        raise HTTPException(status_code=502, detail="Mux returned invalid JSON for upload status")
+        logger.warning("Video upload provider returned invalid JSON (upload status)")
+        raise HTTPException(status_code=502, detail=_MSG_UPLOAD_FAILED)
     data = payload.get("data") if isinstance(payload, dict) else None
     return data if isinstance(data, dict) else {}
 
@@ -87,6 +95,7 @@ def mux_get_asset(asset_id: str) -> dict:
     try:
         payload = r.json()
     except ValueError:
-        raise HTTPException(status_code=502, detail="Mux returned invalid JSON for asset")
+        logger.warning("Video upload provider returned invalid JSON (asset)")
+        raise HTTPException(status_code=502, detail=_MSG_UPLOAD_FAILED)
     data = payload.get("data") if isinstance(payload, dict) else None
     return data if isinstance(data, dict) else {}

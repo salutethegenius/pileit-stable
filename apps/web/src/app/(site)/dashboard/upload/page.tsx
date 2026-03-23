@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import DashboardUploadPageClient from "@/components/dashboard/DashboardUploadPageClient";
 
 export const metadata: Metadata = {
-  title: "Upload video",
-  description: "Add a video to your channel using a Mux playback ID.",
+  title: "Upload to PileIt",
+  description: "Add a video to your channel on PileIt.",
   robots: { index: false, follow: true },
 };
 

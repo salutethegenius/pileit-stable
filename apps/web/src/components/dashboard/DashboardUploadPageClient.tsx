@@ -17,11 +17,8 @@ import Tab from "@mui/material/Tab";
 import { useAuth } from "@/providers/AuthProvider";
 import { apiFetch, ApiError } from "@/lib/api";
 import VideoPlayer from "@/components/VideoPlayer";
-import MuxDirectUploadForm from "@/components/dashboard/MuxDirectUploadForm";
+import PileItVideoUploadForm from "@/components/dashboard/PileItVideoUploadForm";
 import { PILEIT_THEME } from "@/theme/theme";
-
-const MUX_DEMO_HINT =
-  "EcHgOK9coz5K4rjSwOkoE7Y7O01201YMIC200RI6lNxnhs";
 
 function uploadErrorMessage(err: unknown): string {
   if (err instanceof ApiError) {
@@ -76,7 +73,7 @@ export default function DashboardUploadPageClient() {
     const t = title.trim();
     const pid = playbackId.trim();
     if (!t || !pid) {
-      setErr("Title and Mux playback ID are required.");
+      setErr("Title and video ID are required.");
       return;
     }
     if (!accessToken) {
@@ -117,13 +114,7 @@ export default function DashboardUploadPageClient() {
       }}
     >
       <Typography component="h1" variant="h5" fontStyle="italic" fontWeight={800} gutterBottom>
-        Upload video (Mux)
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        <strong>Upload file</strong> sends your video to Mux via a direct upload URL (API must have{" "}
-        <code>MUX_TOKEN_ID</code> / <code>MUX_TOKEN_SECRET</code>). <strong>Paste playback ID</strong>{" "}
-        skips upload — use an ID from the Mux dashboard or the public demo:{" "}
-        <code style={{ wordBreak: "break-all" }}>{MUX_DEMO_HINT}</code>
+        Upload to PileIt
       </Typography>
       <Button
         component={Link}
@@ -141,12 +132,12 @@ export default function DashboardUploadPageClient() {
           onChange={(_, v) => setUploadTab(v)}
           sx={{ mb: 2, borderBottom: 1, borderColor: "divider" }}
         >
-          <Tab label="Upload file" id="upload-tab-file" sx={{ textTransform: "none" }} />
-          <Tab label="Paste playback ID" id="upload-tab-paste" sx={{ textTransform: "none" }} />
+          <Tab label="Upload to PileIt" id="upload-tab-file" sx={{ textTransform: "none" }} />
+          <Tab label="Paste video ID" id="upload-tab-paste" sx={{ textTransform: "none" }} />
         </Tabs>
 
         {uploadTab === 0 && accessToken ? (
-          <MuxDirectUploadForm
+          <PileItVideoUploadForm
             accessToken={accessToken}
             onComplete={(id) => router.push(`/watch/${id}`)}
           />
@@ -172,13 +163,11 @@ export default function DashboardUploadPageClient() {
                 InputLabelProps={{ shrink: true }}
               />
               <TextField
-                label="Mux playback ID"
+                label="Video ID"
                 value={playbackId}
                 onChange={(e) => setPlaybackId(e.target.value)}
                 required
                 fullWidth
-                placeholder={MUX_DEMO_HINT}
-                helperText="Public playback ID only (not the asset ID)."
                 InputLabelProps={{ shrink: true }}
               />
               <TextField
@@ -206,7 +195,7 @@ export default function DashboardUploadPageClient() {
                     color="primary"
                   />
                 }
-                label="Publish immediately (recommended so /watch loads without auth on the server)"
+                label="Publish immediately"
               />
               {playbackId.trim() ? (
                 <Box>
@@ -224,7 +213,7 @@ export default function DashboardUploadPageClient() {
                 </Box>
               ) : null}
               <Button type="submit" variant="contained" disabled={submitting} sx={{ textTransform: "none" }}>
-                {submitting ? "Saving…" : "Save video"}
+                {submitting ? "Saving…" : "Add to PileIt"}
               </Button>
             </Stack>
           </Box>

@@ -12,7 +12,8 @@ import Switch from "@mui/material/Switch";
 import LinearProgress from "@mui/material/LinearProgress";
 import { apiFetch, ApiError } from "@/lib/api";
 
-export type MuxUploadPollResponse = {
+/** Poll response from GET /videos/{id}/mux-upload-status (internal field names unchanged). */
+export type VideoUploadPollResponse = {
   status:
     | "idle"
     | "waiting_upload"
@@ -66,9 +67,9 @@ type Props = {
 };
 
 /**
- * Mux Direct Upload: backend creates signed URL → browser PUTs file → poll until playback id is ready.
+ * Creator file upload flow: direct upload URL from API, then poll until the video is ready on PileIt.
  */
-export default function MuxDirectUploadForm({ accessToken, onComplete }: Props) {
+export default function PileItVideoUploadForm({ accessToken, onComplete }: Props) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
@@ -111,7 +112,7 @@ export default function MuxDirectUploadForm({ accessToken, onComplete }: Props) 
     async (videoId: string) => {
       for (let i = 0; i < MAX_POLLS; i++) {
         if (abortRef.current) return;
-        const r = await apiFetch<MuxUploadPollResponse>(
+        const r = await apiFetch<VideoUploadPollResponse>(
           `/videos/${encodeURIComponent(videoId)}/mux-upload-status`,
           { accessToken }
         );
@@ -123,30 +124,29 @@ export default function MuxDirectUploadForm({ accessToken, onComplete }: Props) 
             onComplete(videoId);
             return;
           }
-          /* Defensive: backend should always send playback_id when ready */
           safeSetStatus("Finalizing…");
           await new Promise((res) => setTimeout(res, POLL_MS));
           continue;
         }
         if (r.status === "error") {
-          throw new Error(r.message || "Mux reported an error.");
+          throw new Error(r.message || "Upload failed.");
         }
         if (r.status === "idle") {
           throw new Error(r.message || "Upload session lost.");
         }
         const human =
           r.status === "waiting_upload"
-            ? "Waiting for Mux to receive the file…"
+            ? "Sending your file to PileIt…"
             : r.status === "waiting_mux"
-              ? "Mux is ingesting your upload…"
+              ? "Finishing upload…"
               : r.status === "processing"
-                ? "Encoding video…"
+                ? "Processing your video on PileIt…"
                 : "Working…";
         safeSetStatus(human);
         await new Promise((res) => setTimeout(res, POLL_MS));
       }
       throw new Error(
-        "Still processing after several minutes. Check your video in the dashboard — it may finish in the background."
+        "Still processing after several minutes. Check your videos in the dashboard — it may finish in the background."
       );
     },
     [accessToken, onComplete, safeSetPhase, safeSetStatus]
@@ -171,7 +171,7 @@ export default function MuxDirectUploadForm({ accessToken, onComplete }: Props) 
 
     try {
       safeSetPhase("creating");
-      safeSetStatus("Creating Mux upload…");
+      safeSetStatus("Preparing upload to PileIt…");
       const created = await apiFetch<DirectUploadCreateResponse>("/videos/mux/direct-upload", {
         method: "POST",
         accessToken,
@@ -186,7 +186,7 @@ export default function MuxDirectUploadForm({ accessToken, onComplete }: Props) 
 
       if (abortRef.current || !mountedRef.current) return;
       safeSetPhase("uploading");
-      safeSetStatus("Uploading to Mux…");
+      safeSetStatus("Uploading to PileIt…");
       const putRes = await fetch(created.upload_url, {
         method: "PUT",
         body: file,
@@ -197,14 +197,14 @@ export default function MuxDirectUploadForm({ accessToken, onComplete }: Props) 
       if (!putRes.ok) {
         const hint =
           putRes.status === 0
-            ? "Network/CORS error talking to Mux storage. Ensure MUX_TOKEN_* is set and cors_origin matches this site."
+            ? "Could not complete upload. Check your connection and try again."
             : `Upload failed (${putRes.status}).`;
         throw new Error(hint);
       }
 
       if (abortRef.current || !mountedRef.current) return;
       safeSetPhase("processing");
-      safeSetStatus("Processing on Mux…");
+      safeSetStatus("Processing your video on PileIt…");
       await pollUntilReady(created.video_id);
     } catch (e) {
       if (!abortRef.current && mountedRef.current) setErr(parseApiErr(e));
@@ -223,7 +223,7 @@ export default function MuxDirectUploadForm({ accessToken, onComplete }: Props) 
       )}
       {phase === "done" && (
         <Alert severity="success" sx={{ mb: 2 }}>
-          Opening your video…
+          Opening your video on PileIt…
         </Alert>
       )}
       {busy && (
@@ -281,14 +281,10 @@ export default function MuxDirectUploadForm({ accessToken, onComplete }: Props) 
               color="primary"
             />
           }
-          label="Publish when Mux finishes (recommended for /watch)"
+          label="Publish when ready (recommended)"
         />
-        <Typography variant="caption" color="text.secondary">
-          Requires <code>MUX_TOKEN_ID</code> and <code>MUX_TOKEN_SECRET</code> on the API. The browser
-          uploads directly to Mux; this origin is sent as <code>cors_origin</code> for that PUT.
-        </Typography>
         <Button type="submit" variant="contained" disabled={busy} sx={{ textTransform: "none" }}>
-          {busy ? "Working…" : "Upload to Mux"}
+          {busy ? "Working…" : "Upload to PileIt"}
         </Button>
       </Stack>
     </Box>
