@@ -27,6 +27,7 @@ from app.routers import (
     store,
     subscriptions,
     tips,
+    usage,
     users,
     videos,
 )
@@ -102,6 +103,7 @@ for r in (
     creators,
     pile,
     reports,
+    usage,
     tips,
     subscriptions,
     store,

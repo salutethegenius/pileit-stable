@@ -61,3 +61,13 @@ def require_admin(user: Annotated[models.User, Depends(get_current_user)]) -> mo
     if user.account_type != "admin":
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Admin only")
     return user
+
+
+def require_creator_or_admin(
+    user: Annotated[models.User, Depends(get_current_user)],
+) -> models.User:
+    if user.account_type not in ("creator", "admin"):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN, "Creator or admin account required"
+        )
+    return user

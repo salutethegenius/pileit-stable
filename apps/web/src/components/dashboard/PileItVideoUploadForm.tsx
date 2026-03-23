@@ -73,6 +73,7 @@ export default function PileItVideoUploadForm({ accessToken, onComplete }: Props
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
+  const [isrc, setIsrc] = useState("");
   const [publishAfterReady, setPublishAfterReady] = useState(true);
   const [file, setFile] = useState<File | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -179,6 +180,7 @@ export default function PileItVideoUploadForm({ accessToken, onComplete }: Props
           title: t,
           description: description.trim() || null,
           category: category.trim() || null,
+          isrc: isrc.trim() || null,
           publish_after_ready: publishAfterReady,
           cors_origin: corsOrigin || null,
         }),
@@ -261,6 +263,16 @@ export default function PileItVideoUploadForm({ accessToken, onComplete }: Props
           fullWidth
           placeholder="e.g. Music"
           disabled={busy}
+          InputLabelProps={{ shrink: true }}
+        />
+        <TextField
+          label="ISRC (optional)"
+          value={isrc}
+          onChange={(e) => setIsrc(e.target.value)}
+          fullWidth
+          placeholder="e.g. US-UM1-25-00001"
+          disabled={busy}
+          helperText="Optional — ties plays to this recording code for PRO reporting."
           InputLabelProps={{ shrink: true }}
         />
         <Button variant="outlined" component="label" disabled={busy} sx={{ textTransform: "none" }}>

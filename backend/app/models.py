@@ -9,6 +9,7 @@ from sqlalchemy import (
     Boolean,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     Numeric,
     String,
@@ -167,9 +168,29 @@ class Video(Base):
     status: Mapped[str] = mapped_column(String(32), default="draft")
     view_count: Mapped[int] = mapped_column(Integer, default=0)
     tip_total: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0"))
+    # Compact 12-char ISRC for performance-rights usage reporting (PRS / BMI / ASCAP, etc.).
+    isrc: Mapped[Optional[str]] = mapped_column(String(12), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=datetime.utcnow
     )
+
+
+class IsrcPlayEvent(Base):
+    """One row per qualified play when a video with an ISRC receives a view (for usage reports)."""
+
+    __tablename__ = "isrc_play_events"
+    __table_args__ = (
+        Index("ix_isrc_play_events_isrc_played", "isrc", "played_at"),
+        Index("ix_isrc_play_events_video", "video_id"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    video_id: Mapped[str] = mapped_column(String(36), ForeignKey("videos.id", ondelete="CASCADE"))
+    isrc: Mapped[str] = mapped_column(String(12), nullable=False)
+    played_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow
+    )
+    country_code: Mapped[Optional[str]] = mapped_column(String(2), nullable=True)
 
 
 class Subscription(Base):

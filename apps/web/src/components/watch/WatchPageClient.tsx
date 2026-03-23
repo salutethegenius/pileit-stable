@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -22,6 +22,7 @@ import { useSubscriptionCheck } from "@/hooks/useSubscriptionCheck";
 import { formatCount } from "@/utils/format";
 import type { PileItVideo } from "@/types/content";
 import { IMG } from "@/lib/imageUrls";
+import { getApiBase } from "@/lib/api";
 
 type Props = { video: PileItVideo };
 
@@ -40,6 +41,18 @@ export default function WatchPageClient({ video }: Props) {
   const subscribed = optimisticSub || apiSub;
   const price = video.creator.subscriptionPrice ?? 4.99;
   const showLock = video.isLocked && !subscribed && !subLoading;
+
+  const viewRegisteredRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (viewRegisteredRef.current === video.id) return;
+    viewRegisteredRef.current = video.id;
+    const base = getApiBase();
+    void fetch(`${base}/videos/${encodeURIComponent(video.id)}/view`, {
+      method: "POST",
+    }).catch(() => {
+      /* non-blocking */
+    });
+  }, [video.id]);
 
   const stats = useMemo(
     () => [

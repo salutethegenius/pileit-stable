@@ -1,6 +1,7 @@
+from datetime import datetime, timezone
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
@@ -8,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app import models
 from app.deps import get_current_user, get_current_user_optional, require_creator
+from app.isrc_utils import normalize_isrc
 from app.monetization import creator_tip_subscribe_embed
 from app.mux_client import mux_create_direct_upload, mux_get_asset, mux_get_upload
 
@@ -28,6 +30,7 @@ class VideoOut(BaseModel):
     status: str
     view_count: int
     tip_total: str
+    isrc: str | None = None
 
     class Config:
         from_attributes = True
@@ -43,6 +46,39 @@ class VideoCreate(BaseModel):
     category: str | None = None
     is_locked: bool = False
     status: str = "draft"
+    isrc: str | None = None
+
+
+def _parse_isrc_optional(raw: str | None) -> str | None:
+    if raw is None:
+        return None
+    s = str(raw).strip()
+    if not s:
+        return None
+    n = normalize_isrc(s)
+    if not n:
+        raise HTTPException(
+            400,
+            "Invalid ISRC. Use 12 alphanumeric characters (hyphens optional), e.g. USUM72512345.",
+        )
+    return n
+
+
+def _client_country(request: Request) -> str | None:
+    """Best-effort ISO 3166-1 alpha-2 from common edge / proxy headers."""
+    for key in (
+        "cf-ipcountry",
+        "x-vercel-ip-country",
+        "cloudfront-viewer-country",
+        "x-country-code",
+    ):
+        raw = request.headers.get(key)
+        if not raw:
+            continue
+        cc = raw.strip().upper()
+        if len(cc) == 2 and cc.isalpha():
+            return cc
+    return None
 
 
 def _mux_playback_id_from_asset(asset: dict) -> str | None:
@@ -76,6 +112,7 @@ def _serialize(v: models.Video) -> dict:
         "tip_total": float(v.tip_total),
         "creator_id": v.creator_id,
         "status": v.status,
+        "isrc": v.isrc,
         "created_at": v.created_at.isoformat() if v.created_at else "",
     }
 
@@ -100,6 +137,7 @@ def list_my_videos(
             "tip_total": float(v.tip_total),
             "is_locked": v.is_locked,
             "thumbnail_url": v.thumbnail_url,
+            "isrc": v.isrc,
         }
         for v in rows
     ]
@@ -109,6 +147,7 @@ class MuxDirectUploadBody(BaseModel):
     title: str
     description: str | None = None
     category: str | None = None
+    isrc: str | None = None
     publish_after_ready: bool = True
     """Browser origin for Mux direct upload CORS (e.g. http://localhost:3000)."""
     cors_origin: str | None = None
@@ -132,11 +171,13 @@ def create_mux_direct_upload(
     upload_url = mux_data.get("url")
     if not mux_upload_id or not upload_url:
         raise HTTPException(502, "Upload couldn’t be started. Please try again.")
+    isrc_val = _parse_isrc_optional(body.isrc)
     v = models.Video(
         creator_id=user.id,
         title=title,
         description=(body.description or "").strip() or None,
         category=(body.category or "").strip() or None,
+        isrc=isrc_val,
         status="draft",
         is_locked=False,
         mux_upload_id=mux_upload_id,
@@ -312,12 +353,26 @@ def get_video(
 
 
 @router.post("/{video_id}/view")
-def increment_view(video_id: str, db: Session = Depends(get_db)):
+def increment_view(
+    video_id: str,
+    request: Request,
+    db: Session = Depends(get_db),
+):
     v = db.get(models.Video, video_id)
     if not v:
         raise HTTPException(404, "Not found")
     v.view_count += 1
+    if v.isrc:
+        db.add(
+            models.IsrcPlayEvent(
+                video_id=v.id,
+                isrc=v.isrc,
+                played_at=datetime.now(timezone.utc),
+                country_code=_client_country(request),
+            )
+        )
     db.commit()
+    db.refresh(v)
     return {"view_count": v.view_count}
 
 
@@ -327,6 +382,7 @@ def create_video(
     user: Annotated[models.User, Depends(require_creator)],
     db: Session = Depends(get_db),
 ):
+    isrc_val = _parse_isrc_optional(body.isrc)
     v = models.Video(
         creator_id=user.id,
         title=body.title,
@@ -338,6 +394,7 @@ def create_video(
         category=body.category,
         is_locked=body.is_locked,
         status=body.status,
+        isrc=isrc_val,
     )
     db.add(v)
     db.commit()
@@ -355,7 +412,10 @@ def update_video(
     v = db.get(models.Video, video_id)
     if not v or v.creator_id != user.id:
         raise HTTPException(404, "Not found")
-    for k, val in body.model_dump().items():
+    data = body.model_dump()
+    if "isrc" in data:
+        data["isrc"] = _parse_isrc_optional(data.get("isrc"))
+    for k, val in data.items():
         setattr(v, k, val)
     db.commit()
     return {"ok": True}

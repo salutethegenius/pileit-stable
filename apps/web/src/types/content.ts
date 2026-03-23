@@ -34,6 +34,8 @@ export interface PileItVideo {
   videoUrl?: string;
   durationSeconds: number;
   category: string;
+  /** Compact ISRC when set (performance-rights / PRO reporting). */
+  isrc?: string | null;
   isLocked: boolean;
   isNew?: boolean;
   viewCount: number;

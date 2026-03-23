@@ -52,6 +52,7 @@ export default function DashboardUploadPageClient() {
   const [playbackId, setPlaybackId] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
+  const [isrc, setIsrc] = useState("");
   const [publishNow, setPublishNow] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -90,6 +91,7 @@ export default function DashboardUploadPageClient() {
           description: description.trim() || null,
           playback_id: pid,
           category: category.trim() || null,
+          isrc: isrc.trim() || null,
           is_locked: false,
           status: publishNow ? "published" : "draft",
         }),
@@ -185,6 +187,15 @@ export default function DashboardUploadPageClient() {
                 onChange={(e) => setCategory(e.target.value)}
                 fullWidth
                 placeholder="e.g. Music"
+                InputLabelProps={{ shrink: true }}
+              />
+              <TextField
+                label="ISRC (optional)"
+                value={isrc}
+                onChange={(e) => setIsrc(e.target.value)}
+                fullWidth
+                placeholder="e.g. US-UM1-25-00001"
+                helperText="For registered recordings — used in usage reports for PROs (PRS, BMI, ASCAP)."
                 InputLabelProps={{ shrink: true }}
               />
               <FormControlLabel

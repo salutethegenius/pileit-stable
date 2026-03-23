@@ -13,6 +13,7 @@ export type ApiVideoRow = {
   duration_seconds: number;
   category?: string | null;
   is_locked: boolean;
+  isrc?: string | null;
   view_count: number;
   tip_total?: number;
   creator: {
@@ -68,6 +69,7 @@ function mapApiVideoToPileItVideoInternal(
     videoUrl: row.video_url || undefined,
     durationSeconds: row.duration_seconds ?? 0,
     category: row.category ?? "",
+    isrc: row.isrc?.trim() || undefined,
     isLocked: Boolean(row.is_locked),
     viewCount: row.view_count,
     tipCount: overrides.tipCount ?? row.tip_total ?? 0,

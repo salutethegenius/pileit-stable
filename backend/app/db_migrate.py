@@ -27,6 +27,8 @@ def migrate_postgres(engine: Engine) -> None:
                         "BOOLEAN NOT NULL DEFAULT FALSE"
                     )
                 )
+            if "isrc" not in cols:
+                conn.execute(text("ALTER TABLE videos ADD COLUMN isrc VARCHAR(12)"))
 
 
 def _sqlite_columns(conn, table: str) -> set[str]:
@@ -188,3 +190,5 @@ def migrate_sqlite(engine: Engine) -> None:
                         "BOOLEAN NOT NULL DEFAULT 0"
                     )
                 )
+            if "isrc" not in vcols:
+                conn.execute(text("ALTER TABLE videos ADD COLUMN isrc VARCHAR(12)"))

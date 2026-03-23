@@ -20,7 +20,7 @@ import Skeleton from "@mui/material/Skeleton";
 import Alert from "@mui/material/Alert";
 import MenuItem from "@mui/material/MenuItem";
 import { useAuth } from "@/providers/AuthProvider";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, getApiBase } from "@/lib/api";
 import { PILEIT_THEME } from "@/theme/theme";
 import { formatBsd } from "@/utils/currency";
 
@@ -40,6 +40,13 @@ type MineVideo = {
   view_count: number;
   tip_total: number;
   is_locked: boolean;
+  isrc?: string | null;
+};
+
+type IsrcUsageSummary = {
+  date_from: string | null;
+  date_to: string | null;
+  rows: { isrc: string; plays: number }[];
 };
 
 type MonStatus = {
@@ -66,6 +73,16 @@ export default function DashboardPageClient() {
   const [selfie, setSelfie] = useState<File | null>(null);
   const [monErr, setMonErr] = useState<string | null>(null);
   const [monLoading, setMonLoading] = useState(false);
+  const [usageFrom, setUsageFrom] = useState(() => {
+    const d = new Date();
+    d.setUTCDate(d.getUTCDate() - 30);
+    return d.toISOString().slice(0, 10);
+  });
+  const [usageTo, setUsageTo] = useState(() => new Date().toISOString().slice(0, 10));
+  const [usageCreatorId, setUsageCreatorId] = useState("");
+  const [usageSummary, setUsageSummary] = useState<IsrcUsageSummary | null>(null);
+  const [usageLoading, setUsageLoading] = useState(false);
+  const [usageErr, setUsageErr] = useState<string | null>(null);
 
   const loadMon = useCallback(() => {
     if (!accessToken || user?.accountType !== "creator") {
@@ -108,6 +125,60 @@ export default function DashboardPageClient() {
     });
     setProductName("");
     setProductPrice("");
+  };
+
+  const loadIsrcUsage = async () => {
+    if (!accessToken || !user) return;
+    setUsageErr(null);
+    setUsageLoading(true);
+    try {
+      const qs = new URLSearchParams();
+      if (usageFrom) qs.set("from", usageFrom);
+      if (usageTo) qs.set("to", usageTo);
+      if (user.accountType === "admin" && usageCreatorId.trim()) {
+        qs.set("creator_id", usageCreatorId.trim());
+      }
+      const data = await apiFetch<IsrcUsageSummary>(
+        `/usage/isrc-summary?${qs.toString()}`,
+        { accessToken }
+      );
+      setUsageSummary(data);
+    } catch {
+      setUsageErr("Could not load ISRC usage. Check dates and try again.");
+      setUsageSummary(null);
+    } finally {
+      setUsageLoading(false);
+    }
+  };
+
+  const downloadIsrcCsv = async () => {
+    if (!accessToken || !user) return;
+    setUsageErr(null);
+    try {
+      const qs = new URLSearchParams();
+      if (usageFrom) qs.set("from", usageFrom);
+      if (usageTo) qs.set("to", usageTo);
+      if (user.accountType === "admin" && usageCreatorId.trim()) {
+        qs.set("creator_id", usageCreatorId.trim());
+      }
+      const res = await fetch(
+        `${getApiBase()}/usage/isrc-summary/export?${qs.toString()}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      if (!res.ok) {
+        setUsageErr("CSV export failed.");
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "isrc_usage_summary.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setUsageErr("CSV export failed.");
+    }
   };
 
   const submitMonetization = async () => {
@@ -371,6 +442,7 @@ export default function DashboardPageClient() {
                 <TableRow>
                   <TableCell>Title</TableCell>
                   <TableCell>Status</TableCell>
+                  <TableCell>ISRC</TableCell>
                   <TableCell>Views</TableCell>
                   <TableCell>Tips</TableCell>
                   <TableCell>Locked</TableCell>
@@ -381,6 +453,9 @@ export default function DashboardPageClient() {
                   <TableRow key={v.id}>
                     <TableCell>{v.title}</TableCell>
                     <TableCell>{v.status}</TableCell>
+                    <TableCell sx={{ fontFamily: "monospace", fontSize: "0.8rem" }}>
+                      {v.isrc || "—"}
+                    </TableCell>
                     <TableCell>{v.view_count}</TableCell>
                     <TableCell>{v.tip_total}</TableCell>
                     <TableCell>{v.is_locked ? "Yes" : "No"}</TableCell>
@@ -448,9 +523,81 @@ export default function DashboardPageClient() {
             <Typography component="h2" variant="h5" fontStyle="italic" fontWeight={800} gutterBottom>
               Analytics
             </Typography>
-            <Typography color="text.secondary">
-              Analytics: per-video views and tips from /dashboard/analytics.
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2, maxWidth: 640 }}>
+              <strong>ISRC usage</strong> — plays on videos that have an ISRC set (one row logged per watch-page
+              view). Filter by UTC date range; export CSV for PRO filings (PRS, BMI, ASCAP, etc.).
             </Typography>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mb: 2 }} alignItems="flex-start">
+              <TextField
+                label="From (UTC)"
+                type="date"
+                size="small"
+                value={usageFrom}
+                onChange={(e) => setUsageFrom(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+              />
+              <TextField
+                label="To (UTC)"
+                type="date"
+                size="small"
+                value={usageTo}
+                onChange={(e) => setUsageTo(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+              />
+              {user.accountType === "admin" ? (
+                <TextField
+                  label="Creator user ID (optional)"
+                  size="small"
+                  value={usageCreatorId}
+                  onChange={(e) => setUsageCreatorId(e.target.value)}
+                  placeholder="Filter all usage to one creator"
+                  sx={{ minWidth: 220 }}
+                  InputLabelProps={{ shrink: true }}
+                />
+              ) : null}
+              <Button
+                variant="contained"
+                disabled={usageLoading || !accessToken}
+                onClick={() => void loadIsrcUsage()}
+                sx={{ textTransform: "none" }}
+              >
+                {usageLoading ? "Loading…" : "Load ISRC summary"}
+              </Button>
+              <Button
+                variant="outlined"
+                disabled={!accessToken}
+                onClick={() => void downloadIsrcCsv()}
+                sx={{ textTransform: "none" }}
+              >
+                Download CSV
+              </Button>
+            </Stack>
+            {usageErr && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {usageErr}
+              </Alert>
+            )}
+            {usageSummary && usageSummary.rows.length === 0 ? (
+              <Typography color="text.secondary">No ISRC plays in this range (add an ISRC on uploads).</Typography>
+            ) : null}
+            {usageSummary && usageSummary.rows.length > 0 ? (
+              <Table size="small" sx={{ maxWidth: 480 }}>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>ISRC</TableCell>
+                    <TableCell align="right">Plays</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {usageSummary.rows.map((r) => (
+                    <TableRow key={r.isrc}>
+                      <TableCell sx={{ fontFamily: "monospace" }}>{r.isrc}</TableCell>
+                      <TableCell align="right">{r.plays}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : null}
           </Box>
         )}
 
