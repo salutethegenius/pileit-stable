@@ -23,13 +23,26 @@ function byNewestCreatorAccount(a: Creator, b: Creator) {
   return tb - ta;
 }
 
-/** Hero uses the leading edge of the catalog (newest creators’ videos first from API). */
-function heroFromVideos(videos: PileItVideo[]) {
-  const picks = videos.slice(0, Math.min(4, videos.length));
-  return picks.map((video) => ({
+/** Hero prioritizes approved/featured creator cover art, then falls back to video-led slides. */
+function heroFromCatalog(videos: PileItVideo[], creators: Creator[]) {
+  const creatorSlides = creators
+    .filter((c) => c.heroImageUrl)
+    .slice(0, 3)
+    .map((creator) => {
+      const fallbackVideo = videos.find((v) => v.creator.id === creator.id);
+      return {
+        kind: "creator" as const,
+        creator,
+        fallbackVideo,
+        badge: "Featured Creator",
+      };
+    });
+  const videoSlides = videos.slice(0, Math.min(4, videos.length)).map((video) => ({
+    kind: "video" as const,
     video,
     badge: categoryHeroLabel(video.category),
   }));
+  return [...creatorSlides, ...videoSlides];
 }
 
 export default function HomePageClient() {
@@ -75,7 +88,10 @@ export default function HomePageClient() {
   const inCategory = (cat: string) =>
     catalog.filter((v) => v.category.toLowerCase() === cat.toLowerCase());
 
-  const heroSlides = useMemo(() => heroFromVideos(catalog), [catalog]);
+  const heroSlides = useMemo(
+    () => heroFromCatalog(catalog, featuredCreators),
+    [catalog, featuredCreators]
+  );
 
   const trend = useMemo(
     () => [...catalog].sort((a, b) => b.viewCount - a.viewCount),

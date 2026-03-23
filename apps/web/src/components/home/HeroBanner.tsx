@@ -12,7 +12,7 @@ import IconButton from "@mui/material/IconButton";
 import CreatorBadges from "@/components/brand/CreatorBadges";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-import type { PileItVideo } from "@/types/content";
+import type { Creator, PileItVideo } from "@/types/content";
 import { useDetailModal } from "@/providers/DetailModalProvider";
 import { formatCount } from "@/utils/format";
 import { categoryHeroChipBg } from "@/utils/categoryStyles";
@@ -20,7 +20,9 @@ import { IMG } from "@/lib/imageUrls";
 import { useCoarsePointer } from "@/hooks/useCoarsePointer";
 import { useMobileNarrow } from "@/hooks/useMobileNarrow";
 
-type Slide = { video: PileItVideo; badge: string };
+type Slide =
+  | { kind: "video"; video: PileItVideo; badge: string }
+  | { kind: "creator"; creator: Creator; fallbackVideo?: PileItVideo; badge: string };
 
 /** Bundle: mobile layout below 768px (MUI `md` is 900px — do not use theme md for this). */
 const MQ_MAX_MOBILE = "@media (max-width: 767.98px)";
@@ -56,9 +58,11 @@ export default function HeroBanner({
   }, [slideCount, coarsePointer]);
 
   const onClaimLead = useLead && index === 0;
-  const videoSlide = onClaimLead ? slides[0] : useLead ? slides[index - 1] : slides[index];
-  const video = videoSlide?.video;
-  const badge = videoSlide?.badge ?? "Creators";
+  const currentSlide = onClaimLead ? slides[0] : useLead ? slides[index - 1] : slides[index];
+  const isCreatorSlide = currentSlide?.kind === "creator";
+  const creator = isCreatorSlide ? currentSlide.creator : null;
+  const video = currentSlide?.kind === "video" ? currentSlide.video : currentSlide?.fallbackVideo;
+  const badge = currentSlide?.badge ?? "Creators";
 
   if (slideCount === 0) {
     return null;
@@ -109,15 +113,19 @@ export default function HeroBanner({
       ) : null}
       {slides.map((s, i) => {
         const layerIndex = useLead ? i + 1 : i;
+        const bg =
+          s.kind === "creator"
+            ? s.creator.heroImageUrl || DEFAULT_CLAIM_HERO
+            : IMG.heroBackdrop(s.video.backdropUrl || s.video.thumbnailUrl);
         return (
           <Box
-            key={s.video.id}
+            key={s.kind === "creator" ? `creator-${s.creator.id}` : `video-${s.video.id}`}
             sx={{
               position: "absolute",
               inset: 0,
               opacity: layerIndex === index ? 1 : 0,
               transition: "opacity 0.8s ease",
-              backgroundImage: `linear-gradient(120deg, rgba(20,20,20,0.92) 35%, rgba(20,20,20,0.4) 100%), url(${IMG.heroBackdrop(s.video.backdropUrl || s.video.thumbnailUrl)})`,
+              backgroundImage: `linear-gradient(120deg, rgba(20,20,20,0.92) 35%, rgba(20,20,20,0.4) 100%), url(${bg})`,
               backgroundSize: "cover",
               backgroundPosition: "center",
             }}
@@ -227,6 +235,93 @@ export default function HeroBanner({
               >
                 Watch now
               </Button>
+            </Stack>
+          </>
+        ) : isCreatorSlide && creator ? (
+          <>
+            <Chip
+              label={badge}
+              size="small"
+              sx={{
+                mb: 2,
+                bgcolor: "rgba(249, 115, 22, 0.35)",
+                color: "#fff",
+                fontWeight: 700,
+                letterSpacing: 0.02,
+                "& .MuiChip-label": { px: 1.25 },
+              }}
+            />
+            <Typography
+              component="h1"
+              variant="h3"
+              sx={{
+                fontSize: { xs: 36, md: 56 },
+                lineHeight: 1.05,
+                maxWidth: 720,
+                mb: 2,
+              }}
+            >
+              {creator.displayName}
+            </Typography>
+            <Typography
+              variant="body1"
+              sx={{
+                maxWidth: 560,
+                color: "text.secondary",
+                mb: 3,
+                display: "-webkit-box",
+                WebkitLineClamp: 3,
+                WebkitBoxOrient: "vertical",
+                overflow: "hidden",
+              }}
+            >
+              {creator.bio?.trim() || "Now featured on PileIt. Tap in and follow this creator."}
+            </Typography>
+            <Stack sx={btnStackSx}>
+              <Button
+                component={Link}
+                href={`/creator/${encodeURIComponent(creator.handle)}`}
+                variant="contained"
+                color="primary"
+                size="large"
+                sx={{ textTransform: "none", fontWeight: 700, ...btnFullMobileSx }}
+              >
+                View Channel
+              </Button>
+              {video ? (
+                <Button
+                  component={Link}
+                  href={`/watch/${video.id}`}
+                  variant="outlined"
+                  size="large"
+                  startIcon={<PlayArrowIcon />}
+                  sx={{
+                    textTransform: "none",
+                    borderColor: "#666",
+                    color: "text.primary",
+                    ...btnFullMobileSx,
+                    "&:hover": { borderColor: "#999" },
+                  }}
+                >
+                  Watch Latest
+                </Button>
+              ) : null}
+            </Stack>
+            <Stack direction="row" spacing={1.5} alignItems="center">
+              <Avatar src={creator.avatarUrl || undefined} alt={`${creator.displayName} avatar`} sx={{ width: 48, height: 48 }} />
+              <Box>
+                <Stack direction="row" alignItems="center" spacing={0.5} flexWrap="wrap">
+                  <Typography fontWeight={700}>{creator.displayName}</Typography>
+                  <CreatorBadges
+                    verified={creator.verified}
+                    monetizationEligible={creator.monetizationEligible}
+                    size="medium"
+                  />
+                </Stack>
+                <Typography variant="caption" color="text.secondary">
+                  {formatCount(creator.subscriberCount)} subscribers
+                </Typography>
+              </Box>
             </Stack>
           </>
         ) : (
