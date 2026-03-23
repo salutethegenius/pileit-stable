@@ -49,6 +49,12 @@ type IsrcUsageSummary = {
   rows: { isrc: string; plays: number }[];
 };
 
+type IsrcCountryUsageSummary = {
+  date_from: string | null;
+  date_to: string | null;
+  rows: { isrc: string; country_code: string; plays: number }[];
+};
+
 type MonStatus = {
   payout_status: string;
   monetization_eligible: boolean;
@@ -81,6 +87,9 @@ export default function DashboardPageClient() {
   const [usageTo, setUsageTo] = useState(() => new Date().toISOString().slice(0, 10));
   const [usageCreatorId, setUsageCreatorId] = useState("");
   const [usageSummary, setUsageSummary] = useState<IsrcUsageSummary | null>(null);
+  const [usageCountrySummary, setUsageCountrySummary] = useState<IsrcCountryUsageSummary | null>(
+    null
+  );
   const [usageLoading, setUsageLoading] = useState(false);
   const [usageErr, setUsageErr] = useState<string | null>(null);
 
@@ -138,14 +147,19 @@ export default function DashboardPageClient() {
       if (user.accountType === "admin" && usageCreatorId.trim()) {
         qs.set("creator_id", usageCreatorId.trim());
       }
-      const data = await apiFetch<IsrcUsageSummary>(
-        `/usage/isrc-summary?${qs.toString()}`,
-        { accessToken }
-      );
+      const [data, countryData] = await Promise.all([
+        apiFetch<IsrcUsageSummary>(`/usage/isrc-summary?${qs.toString()}`, { accessToken }),
+        apiFetch<IsrcCountryUsageSummary>(
+          `/usage/isrc-country-summary?${qs.toString()}`,
+          { accessToken }
+        ),
+      ]);
       setUsageSummary(data);
+      setUsageCountrySummary(countryData);
     } catch {
       setUsageErr("Could not load ISRC usage. Check dates and try again.");
       setUsageSummary(null);
+      setUsageCountrySummary(null);
     } finally {
       setUsageLoading(false);
     }
@@ -178,6 +192,36 @@ export default function DashboardPageClient() {
       URL.revokeObjectURL(url);
     } catch {
       setUsageErr("CSV export failed.");
+    }
+  };
+
+  const downloadIsrcCountryCsv = async () => {
+    if (!accessToken || !user) return;
+    setUsageErr(null);
+    try {
+      const qs = new URLSearchParams();
+      if (usageFrom) qs.set("from", usageFrom);
+      if (usageTo) qs.set("to", usageTo);
+      if (user.accountType === "admin" && usageCreatorId.trim()) {
+        qs.set("creator_id", usageCreatorId.trim());
+      }
+      const res = await fetch(
+        `${getApiBase()}/usage/isrc-country-summary/export?${qs.toString()}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      if (!res.ok) {
+        setUsageErr("Country CSV export failed.");
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "isrc_country_usage_summary.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setUsageErr("Country CSV export failed.");
     }
   };
 
@@ -579,6 +623,14 @@ export default function DashboardPageClient() {
               >
                 Download CSV
               </Button>
+              <Button
+                variant="outlined"
+                disabled={!accessToken}
+                onClick={() => void downloadIsrcCountryCsv()}
+                sx={{ textTransform: "none" }}
+              >
+                Download Country CSV
+              </Button>
             </Stack>
             {usageErr && (
               <Alert severity="error" sx={{ mb: 2 }}>
@@ -605,6 +657,31 @@ export default function DashboardPageClient() {
                   ))}
                 </TableBody>
               </Table>
+            ) : null}
+            {usageCountrySummary && usageCountrySummary.rows.length > 0 ? (
+              <Box sx={{ mt: 3 }}>
+                <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                  Country breakdown
+                </Typography>
+                <Table size="small" sx={{ maxWidth: 760 }}>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>ISRC</TableCell>
+                      <TableCell>Country</TableCell>
+                      <TableCell align="right">Plays</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {usageCountrySummary.rows.map((r, idx) => (
+                      <TableRow key={`${r.isrc}-${r.country_code}-${idx}`}>
+                        <TableCell sx={{ fontFamily: "monospace" }}>{r.isrc}</TableCell>
+                        <TableCell sx={{ fontFamily: "monospace" }}>{r.country_code}</TableCell>
+                        <TableCell align="right">{r.plays}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Box>
             ) : null}
           </Box>
         )}

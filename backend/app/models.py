@@ -193,6 +193,26 @@ class IsrcPlayEvent(Base):
     country_code: Mapped[Optional[str]] = mapped_column(String(2), nullable=True)
 
 
+class VideoViewEvent(Base):
+    """Per-view event log used for dedupe and quality controls."""
+
+    __tablename__ = "video_view_events"
+    __table_args__ = (
+        Index("ix_video_view_events_video_viewed", "video_id", "viewed_at"),
+        Index("ix_video_view_events_fingerprint", "fingerprint_hash"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    video_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("videos.id", ondelete="CASCADE"), nullable=False
+    )
+    viewed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow
+    )
+    country_code: Mapped[Optional[str]] = mapped_column(String(2), nullable=True)
+    fingerprint_hash: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+
+
 class Subscription(Base):
     __tablename__ = "subscriptions"
 

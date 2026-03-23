@@ -1,4 +1,5 @@
-from datetime import datetime, timezone
+import hashlib
+from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -14,6 +15,7 @@ from app.monetization import creator_tip_subscribe_embed
 from app.mux_client import mux_create_direct_upload, mux_get_asset, mux_get_upload
 
 router = APIRouter(prefix="/videos", tags=["videos"])
+VIEW_DEDUPE_WINDOW_MINUTES = 30
 
 
 class VideoOut(BaseModel):
@@ -79,6 +81,21 @@ def _client_country(request: Request) -> str | None:
         if len(cc) == 2 and cc.isalpha():
             return cc
     return None
+
+
+def _viewer_fingerprint_hash(request: Request) -> str | None:
+    """Best-effort privacy-preserving viewer fingerprint for short dedupe windows."""
+    fwd = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
+    ip = (
+        fwd
+        or (request.headers.get("cf-connecting-ip") or "").strip()
+        or (request.client.host if request.client else "")
+    )
+    ua = (request.headers.get("user-agent") or "").strip()
+    base = f"{ip}|{ua}".strip("|")
+    if not base:
+        return None
+    return hashlib.sha256(base.encode("utf-8")).hexdigest()
 
 
 def _mux_playback_id_from_asset(asset: dict) -> str | None:
@@ -361,14 +378,39 @@ def increment_view(
     v = db.get(models.Video, video_id)
     if not v:
         raise HTTPException(404, "Not found")
+    now = datetime.now(timezone.utc)
+    fp = _viewer_fingerprint_hash(request)
+    country = _client_country(request)
+    if fp:
+        cutoff = now - timedelta(minutes=VIEW_DEDUPE_WINDOW_MINUTES)
+        recent = (
+            db.query(models.VideoViewEvent.id)
+            .filter(
+                models.VideoViewEvent.video_id == v.id,
+                models.VideoViewEvent.fingerprint_hash == fp,
+                models.VideoViewEvent.viewed_at >= cutoff,
+            )
+            .first()
+        )
+        if recent:
+            return {"view_count": v.view_count, "deduped": True}
+
     v.view_count += 1
+    db.add(
+        models.VideoViewEvent(
+            video_id=v.id,
+            viewed_at=now,
+            country_code=country,
+            fingerprint_hash=fp,
+        )
+    )
     if v.isrc:
         db.add(
             models.IsrcPlayEvent(
                 video_id=v.id,
                 isrc=v.isrc,
-                played_at=datetime.now(timezone.utc),
-                country_code=_client_country(request),
+                played_at=now,
+                country_code=country,
             )
         )
     db.commit()
