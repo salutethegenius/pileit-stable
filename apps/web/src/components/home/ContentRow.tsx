@@ -57,7 +57,7 @@ export default function ContentRow({ title, seeAllHref, videos }: Props) {
   if (videos.length === 0) return null;
 
   return (
-    <Box sx={{ mb: 3, pl: { xs: 2, md: 3 }, pr: { xs: 1, md: 2 } }}>
+    <Box sx={{ mb: 3 }}>
       <Stack
         direction="row"
         alignItems="center"

@@ -51,7 +51,7 @@ export default function Navbar() {
         borderBottom: `1px solid ${PILEIT_THEME.border}`,
       }}
     >
-      <Toolbar sx={{ minHeight: 64, px: { xs: 2, md: 3 }, gap: 2 }}>
+      <Toolbar sx={{ minHeight: 64, px: { xs: 2, md: 4, xl: 5 }, gap: 2 }}>
         <Link
           href="/browse"
           style={{

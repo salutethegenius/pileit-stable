@@ -73,6 +73,9 @@ export default function WatchPageClient({ video }: Props) {
         flexDirection: { xs: "column", md: "row" },
         minHeight: { md: "calc(100vh - 64px)" },
         bgcolor: "background.default",
+        width: "100%",
+        maxWidth: 1440,
+        mx: "auto",
       }}
     >
       <Box

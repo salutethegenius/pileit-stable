@@ -93,7 +93,7 @@ export default function HomePageClient() {
   return (
     <Box sx={{ bgcolor: "background.default", minHeight: "100vh" }}>
       <HeroBanner slides={heroSlides} />
-      <Box sx={{ pt: 2 }}>
+      <Box sx={{ maxWidth: 1440, mx: "auto", width: "100%", px: { xs: 2, md: 3, xl: 4 }, pt: 2 }}>
         <CreatorRow title="Featured Creators" creators={featuredCreators} />
         <Box id="trending" sx={{ scrollMarginTop: 88 }}>
           <ContentRow title="Trending This Week" videos={trend} />

@@ -224,7 +224,15 @@ export default function DashboardPageClient() {
   }
 
   return (
-    <Box sx={{ display: "flex", minHeight: "calc(100vh - 64px)" }}>
+    <Box
+      sx={{
+        display: "flex",
+        minHeight: "calc(100vh - 64px)",
+        width: "100%",
+        maxWidth: 1440,
+        mx: "auto",
+      }}
+    >
       <Paper
         elevation={0}
         sx={{
