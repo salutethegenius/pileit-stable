@@ -1,7 +1,32 @@
-"""SQLite-only additive migrations (create_all does not alter existing tables)."""
+"""Additive migrations for SQLite and PostgreSQL (create_all does not alter existing tables)."""
 
 from sqlalchemy import inspect, text
 from sqlalchemy.engine import Engine
+
+
+def migrate_postgres(engine: Engine) -> None:
+    """Ensure new columns exist on existing Postgres databases."""
+    if engine.dialect.name != "postgresql":
+        return
+    insp = inspect(engine)
+    with engine.begin() as conn:
+        if insp.has_table("videos"):
+            cols = {c["name"] for c in insp.get_columns("videos")}
+            if "playback_id" not in cols:
+                conn.execute(
+                    text("ALTER TABLE videos ADD COLUMN playback_id VARCHAR(128)")
+                )
+            if "mux_upload_id" not in cols:
+                conn.execute(
+                    text("ALTER TABLE videos ADD COLUMN mux_upload_id VARCHAR(128)")
+                )
+            if "mux_pending_publish" not in cols:
+                conn.execute(
+                    text(
+                        "ALTER TABLE videos ADD COLUMN mux_pending_publish "
+                        "BOOLEAN NOT NULL DEFAULT FALSE"
+                    )
+                )
 
 
 def _sqlite_columns(conn, table: str) -> set[str]:
@@ -142,5 +167,24 @@ def migrate_sqlite(engine: Engine) -> None:
                     text(
                         "UPDATE creator_profiles SET monetization_eligible = 1, "
                         "payout_status = 'approved'"
+                    )
+                )
+
+        # videos
+        if inspect(engine).has_table("videos"):
+            vcols = _sqlite_columns(conn, "videos")
+            if "playback_id" not in vcols:
+                conn.execute(
+                    text("ALTER TABLE videos ADD COLUMN playback_id VARCHAR(128)")
+                )
+            if "mux_upload_id" not in vcols:
+                conn.execute(
+                    text("ALTER TABLE videos ADD COLUMN mux_upload_id VARCHAR(128)")
+                )
+            if "mux_pending_publish" not in vcols:
+                conn.execute(
+                    text(
+                        "ALTER TABLE videos ADD COLUMN mux_pending_publish "
+                        "BOOLEAN NOT NULL DEFAULT 0"
                     )
                 )

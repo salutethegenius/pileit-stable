@@ -197,7 +197,7 @@ export default function HeroBanner({
             <Stack sx={btnStackSx}>
               <Button
                 component={Link}
-                href="/creator/apply"
+                href="/register"
                 variant="contained"
                 color="primary"
                 size="large"

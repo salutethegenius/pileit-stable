@@ -10,6 +10,9 @@ CLAIM_DEMO_HANDLE = "pileitunclaimed"
 
 DEMO_MP4 = "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
 
+# Public Mux demo asset (VOD) for local/dev playback via Mux Player
+DEMO_MUX_PLAYBACK_ID = "EcHgOK9coz5K4rjSwOkoE7Y7O01201YMIC200RI6lNxnhs"
+
 # Previous single thumbnail for all core rows — used to backfill older Postgres seeds.
 LEGACY_UNIFIED_THUMB = (
     "https://images.unsplash.com/photo-1529156069898-49953e39b3ac"
@@ -160,6 +163,7 @@ def seed_if_empty(db: Session) -> None:
                 duration_seconds=duration,
                 view_count=views,
                 video_url=DEMO_MP4,
+                playback_id=DEMO_MUX_PLAYBACK_ID,
                 thumbnail_url=_unsplash(photo_id),
             )
         )
@@ -446,6 +450,7 @@ def ensure_extra_demo_videos(db: Session) -> None:
                 duration_seconds=duration,
                 view_count=views,
                 video_url=DEMO_MP4,
+                playback_id=DEMO_MUX_PLAYBACK_ID,
                 thumbnail_url=_unsplash(photo_id),
             )
         )

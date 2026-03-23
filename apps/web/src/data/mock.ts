@@ -122,6 +122,9 @@ const SAMPLE_MP4 = [
   "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
 ] as const;
 
+/** Public Mux demo VOD — matches backend seed `DEMO_MUX_PLAYBACK_ID` for local / mock playback. */
+const MOCK_MUX_PLAYBACK_ID = "EcHgOK9coz5K4rjSwOkoE7Y7O01201YMIC200RI6lNxnhs";
+
 /** Image seeds — Unsplash IDs reused from proven rows in this file (avoid 404s). */
 const U = {
   street: "photo-1529156069898-49953e39b3ac",
@@ -176,6 +179,7 @@ function makeVideo(
       opts.description ?? `${title} — PileIt original from The Bahamas.`,
     thumbnailUrl: img(imageSeed, 400, 225),
     backdropUrl: img(imageSeed, 1200, 675),
+    playbackId: MOCK_MUX_PLAYBACK_ID,
     videoUrl,
     durationSeconds: opts.durationSeconds,
     category,

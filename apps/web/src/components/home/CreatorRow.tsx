@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import Slider, { type Settings } from "react-slick";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
@@ -14,22 +14,40 @@ import CreatorCard from "./CreatorCard";
 
 type Props = { title: string; creators: Creator[] };
 
+function slidesToShowForWidth(width: number, n: number) {
+  const cap = (max: number) => Math.max(1, Math.min(max, n));
+  if (width < 600) return cap(1);
+  if (width < 900) return cap(2);
+  if (width < 1200) return cap(3);
+  return cap(4);
+}
+
 export default function CreatorRow({ title, creators }: Props) {
   const sliderRef = useRef<Slider>(null);
+  const n = creators.length;
+  /** react-slick's `responsive` only updates on media *changes*, not on first paint — default stayed at 4 on mobile. */
+  const [slidesToShow, setSlidesToShow] = useState(1);
+
+  useLayoutEffect(() => {
+    if (n === 0) return;
+    const update = () => setSlidesToShow(slidesToShowForWidth(window.innerWidth, n));
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, [n]);
+
+  const slidesToScroll = slidesToShow <= 1 ? 1 : Math.min(2, slidesToShow);
+
   const settings: Settings = {
+    className: "pileit-creator-row-slider",
     speed: 450,
     arrows: false,
     infinite: false,
-    slidesToShow: 4,
-    slidesToScroll: 2,
-    responsive: [
-      { breakpoint: 1200, settings: { slidesToShow: 3 } },
-      { breakpoint: 900, settings: { slidesToShow: 2 } },
-      { breakpoint: 600, settings: { slidesToShow: 1 } },
-    ],
+    slidesToShow,
+    slidesToScroll,
   };
 
-  if (creators.length === 0) return null;
+  if (n === 0) return null;
 
   return (
     <Box sx={{ mb: 3, pl: { xs: 2, md: 3 }, pr: { xs: 1, md: 2 } }}>
@@ -59,9 +77,9 @@ export default function CreatorRow({ title, creators }: Props) {
           </IconButton>
         </Stack>
       </Stack>
-      <Slider ref={sliderRef} {...settings}>
+      <Slider ref={sliderRef} key={`${slidesToShow}-${n}`} {...settings}>
         {creators.map((c) => (
-          <Box key={c.id} sx={{ px: 1 }}>
+          <Box key={c.id} sx={{ px: 1, minWidth: 0, overflow: "hidden" }}>
             <CreatorCard creator={c} />
           </Box>
         ))}

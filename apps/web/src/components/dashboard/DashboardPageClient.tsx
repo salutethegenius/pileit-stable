@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
@@ -357,7 +358,12 @@ export default function DashboardPageClient() {
             >
               Videos
             </Typography>
-            <Button variant="contained" sx={{ mb: 2, textTransform: "none" }}>
+            <Button
+              component={Link}
+              href="/dashboard/upload"
+              variant="contained"
+              sx={{ mb: 2, textTransform: "none" }}
+            >
               Upload new video
             </Button>
             <Table size="small">

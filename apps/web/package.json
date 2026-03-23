@@ -21,6 +21,7 @@
     "@mui/icons-material": "^5.16.14",
     "@mui/material": "^5.16.14",
     "@mui/material-nextjs": "^5.16.14",
+    "@mux/mux-player-react": "^3.11.6",
     "framer-motion": "^12.38.0",
     "next": "14.2.35",
     "react": "^18",

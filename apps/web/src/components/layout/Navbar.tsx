@@ -190,17 +190,17 @@ export default function Navbar() {
             <NotificationsNoneIcon />
           </IconButton>
           {authLoading ? (
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1, ml: 0.5 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, ml: 0.5 }}>
               <Skeleton
                 variant="rounded"
-                width={72}
-                height={32}
+                width={56}
+                height={28}
                 sx={{ bgcolor: "rgba(255,255,255,0.08)" }}
               />
               <Skeleton
                 variant="rounded"
-                width={88}
-                height={32}
+                width={64}
+                height={28}
                 sx={{ bgcolor: "rgba(255,255,255,0.08)" }}
               />
             </Box>
@@ -210,18 +210,35 @@ export default function Navbar() {
                 component={Link}
                 href="/login"
                 variant="text"
-                sx={{ color: "text.secondary", textTransform: "none" }}
+                sx={{
+                  color: "text.secondary",
+                  textTransform: "none",
+                  minWidth: 0,
+                  px: 0.75,
+                  py: 0.5,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  whiteSpace: "nowrap",
+                }}
               >
-                Log In
+                Log in
               </Button>
               <Button
                 component={Link}
                 href="/register"
-                variant="contained"
+                variant="text"
                 color="primary"
-                sx={{ textTransform: "none", ml: 0.5 }}
+                sx={{
+                  textTransform: "none",
+                  minWidth: 0,
+                  px: 0.75,
+                  py: 0.5,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  whiteSpace: "nowrap",
+                }}
               >
-                Sign Up
+                Sign up
               </Button>
             </>
           ) : (

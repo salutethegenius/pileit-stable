@@ -8,7 +8,8 @@ export type ApiVideoRow = {
   description: string | null;
   thumbnail_url: string | null;
   backdrop_url?: string | null;
-  video_url: string | null;
+  video_url?: string | null;
+  playback_id?: string | null;
   duration_seconds: number;
   category?: string | null;
   is_locked: boolean;
@@ -63,6 +64,7 @@ function mapApiVideoToPileItVideoInternal(
     description: row.description ?? "",
     thumbnailUrl: thumb ? IMG.cardThumb(thumb) : "",
     backdropUrl: back ? IMG.heroBackdrop(back) : "",
+    playbackId: row.playback_id?.trim() || undefined,
     videoUrl: row.video_url || undefined,
     durationSeconds: row.duration_seconds ?? 0,
     category: row.category ?? "",

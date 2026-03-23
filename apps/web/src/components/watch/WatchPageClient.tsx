@@ -12,7 +12,7 @@ import Fab from "@mui/material/Fab";
 import ChatIcon from "@mui/icons-material/Chat";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
-import VideoPlayer from "./VideoPlayer";
+import VideoPlayer from "@/components/VideoPlayer";
 import LockGate from "./LockGate";
 import PilePanel from "./PilePanel";
 import ReportContentDialog from "./ReportContentDialog";
@@ -51,7 +51,7 @@ export default function WatchPageClient({ video }: Props) {
     [video]
   );
 
-  const src = video.videoUrl ?? "";
+  const playbackId = video.playbackId?.trim() ?? "";
 
   return (
     <Box
@@ -72,11 +72,15 @@ export default function WatchPageClient({ video }: Props) {
         }}
       >
         <Box sx={{ position: "relative", borderRadius: 1, overflow: "hidden" }}>
-          {!showLock && src ? (
+          {!showLock && playbackId ? (
             <VideoPlayer
-              src={src}
+              playbackId={playbackId}
               poster={video.thumbnailUrl ? IMG.videoPoster(video.thumbnailUrl) : undefined}
-              locked={false}
+              accentColor={video.creator.accentColor}
+              metadata={{
+                video_id: video.id,
+                video_title: video.title,
+              }}
             />
           ) : (
             <Box

@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import Base, engine, SessionLocal
-from app.db_migrate import migrate_sqlite
+from app.db_migrate import migrate_postgres, migrate_sqlite
 from app.seed import (
     backfill_core_demo_thumbnails,
     ensure_claim_demo_stub,
@@ -55,6 +55,7 @@ def _init_database_sync() -> None:
     try:
         Base.metadata.create_all(bind=engine)
         migrate_sqlite(engine)
+        migrate_postgres(engine)
         db = SessionLocal()
         try:
             seed_if_empty(db)

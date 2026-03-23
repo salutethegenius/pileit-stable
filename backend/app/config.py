@@ -43,6 +43,9 @@ class Settings(BaseSettings):
     meta_webhook_verify_token: str = ""
     # Instagram username shown in “DM @…” instructions (no @)
     pileit_instagram_username: str = "PileItOfficial"
+    # Mux Video — Direct Upload (browser → signed URL). Webhooks optional later.
+    mux_token_id: str = ""
+    mux_token_secret: str = ""
 
     @model_validator(mode="after")
     def resolve_sqlite_url(self):

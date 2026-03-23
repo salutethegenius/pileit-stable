@@ -30,6 +30,8 @@ export default function CreatorCard({ creator }: { creator: Creator }) {
       sx={{
         display: "block",
         p: 2,
+        maxWidth: "100%",
+        overflow: "hidden",
         bgcolor: "#2a2a2a",
         border: "1px solid #333",
         borderRadius: 2,
@@ -41,7 +43,7 @@ export default function CreatorCard({ creator }: { creator: Creator }) {
         },
       }}
     >
-      <Stack direction="row" spacing={2} alignItems="center">
+      <Stack direction="row" spacing={2} alignItems="center" sx={{ minWidth: 0 }}>
         <Box
           sx={{
             position: "relative",
@@ -68,18 +70,26 @@ export default function CreatorCard({ creator }: { creator: Creator }) {
             />
           )}
         </Box>
-        <Box>
-          <Stack direction="row" alignItems="center" spacing={0.5}>
-            <Typography variant="subtitle1" fontWeight={800} fontStyle="italic">
+        <Box sx={{ minWidth: 0, flex: 1 }}>
+          <Stack direction="row" alignItems="center" spacing={0.5} sx={{ minWidth: 0 }}>
+            <Typography
+              variant="subtitle1"
+              fontWeight={800}
+              fontStyle="italic"
+              noWrap
+              sx={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}
+            >
               {creator.displayName}
             </Typography>
-            <CreatorBadges
-              verified={creator.verified}
-              monetizationEligible={creator.monetizationEligible}
-              size="small"
-            />
+            <Box sx={{ flexShrink: 0 }}>
+              <CreatorBadges
+                verified={creator.verified}
+                monetizationEligible={creator.monetizationEligible}
+                size="small"
+              />
+            </Box>
           </Stack>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" color="text.secondary" noWrap sx={{ overflow: "hidden", textOverflow: "ellipsis" }}>
             @{creator.handle}
           </Typography>
           <Chip

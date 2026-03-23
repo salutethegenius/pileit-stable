@@ -46,7 +46,8 @@ function LoginForm() {
     setLoading(true);
     try {
       await login(email, password);
-      router.push(nextPath);
+      const destination = nextPath !== "/" ? nextPath : "/browse";
+      router.push(destination);
     } catch {
       setErr("Invalid email or password.");
     } finally {
@@ -118,9 +119,9 @@ function LoginForm() {
             Log In
           </Button>
         </form>
-        <Typography sx={{ mt: 2 }} color="text.secondary">
+        <Typography sx={{ mt: 2 }} color="text.secondary" component="div">
           No account?{" "}
-          <Link href={registerHref} style={{ color: "#fb923c" }}>
+          <Link href={registerHref} style={{ color: "#fb923c", whiteSpace: "nowrap" }}>
             Sign up
           </Link>
         </Typography>

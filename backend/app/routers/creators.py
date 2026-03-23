@@ -399,6 +399,7 @@ def creator_videos(handle: str, db: Session = Depends(get_db)):
                 "title": v.title,
                 "description": v.description,
                 "thumbnail_url": v.thumbnail_url,
+                "playback_id": v.playback_id,
                 "duration_seconds": v.duration_seconds or 0,
                 "category": v.category or "",
                 "is_locked": v.is_locked,

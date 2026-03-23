@@ -70,7 +70,7 @@ function ApplyForm() {
       .catch(() => setExisting(null));
   }, [accessToken, user]);
 
-  if (loading || existing === undefined) {
+  if (loading) {
     return (
       <Box sx={{ p: 4, maxWidth: 720, mx: "auto" }}>
         <Skeleton height={48} sx={{ mb: 2 }} />
@@ -83,6 +83,13 @@ function ApplyForm() {
     return (
       <Box sx={{ p: 4, maxWidth: 560, mx: "auto" }}>
         <Typography gutterBottom>Log in to apply as a creator.</Typography>
+        <Typography color="text.secondary" sx={{ mb: 2 }}>
+          Don&apos;t have an account yet?{" "}
+          <Link href="/register" style={{ color: "#fb923c" }}>
+            Sign up
+          </Link>{" "}
+          first, then return here to submit your application.
+        </Typography>
         <Button component={Link} href={loginHref} variant="contained">
           Log in
         </Button>
@@ -97,6 +104,15 @@ function ApplyForm() {
         <Button component={Link} href="/dashboard" sx={{ mt: 2 }} variant="outlined">
           Dashboard
         </Button>
+      </Box>
+    );
+  }
+
+  if (existing === undefined) {
+    return (
+      <Box sx={{ p: 4, maxWidth: 720, mx: "auto" }}>
+        <Skeleton height={48} sx={{ mb: 2 }} />
+        <Skeleton height={200} />
       </Box>
     );
   }

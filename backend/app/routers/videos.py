@@ -9,6 +9,7 @@ from app.database import get_db
 from app import models
 from app.deps import get_current_user, get_current_user_optional, require_creator
 from app.monetization import creator_tip_subscribe_embed
+from app.mux_client import mux_create_direct_upload, mux_get_asset, mux_get_upload
 
 router = APIRouter(prefix="/videos", tags=["videos"])
 
@@ -19,6 +20,7 @@ class VideoOut(BaseModel):
     title: str
     description: str | None
     video_url: str | None
+    playback_id: str | None
     thumbnail_url: str | None
     duration_seconds: int | None
     category: str | None
@@ -35,11 +37,27 @@ class VideoCreate(BaseModel):
     title: str
     description: str | None = None
     video_url: str | None = None
+    playback_id: str | None = None
     thumbnail_url: str | None = None
     duration_seconds: int | None = None
     category: str | None = None
     is_locked: bool = False
     status: str = "draft"
+
+
+def _mux_playback_id_from_asset(asset: dict) -> str | None:
+    """Mux may return playback_ids as objects {id, policy} or occasionally string ids."""
+    raw = asset.get("playback_ids") or []
+    if not isinstance(raw, list):
+        return None
+    for p in raw:
+        if isinstance(p, str) and p.strip():
+            return p.strip()
+        if isinstance(p, dict) and p.get("id"):
+            s = str(p["id"]).strip()
+            if s:
+                return s
+    return None
 
 
 def _serialize(v: models.Video) -> dict:
@@ -50,6 +68,7 @@ def _serialize(v: models.Video) -> dict:
         "thumbnail_url": v.thumbnail_url,
         "backdrop_url": v.thumbnail_url,
         "video_url": v.video_url,
+        "playback_id": v.playback_id,
         "duration_seconds": v.duration_seconds or 0,
         "category": v.category or "",
         "is_locked": v.is_locked,
@@ -84,6 +103,153 @@ def list_my_videos(
         }
         for v in rows
     ]
+
+
+class MuxDirectUploadBody(BaseModel):
+    title: str
+    description: str | None = None
+    category: str | None = None
+    publish_after_ready: bool = True
+    """Browser origin for Mux direct upload CORS (e.g. http://localhost:3000)."""
+    cors_origin: str | None = None
+
+
+@router.post("/mux/direct-upload", status_code=201)
+def create_mux_direct_upload(
+    body: MuxDirectUploadBody,
+    user: Annotated[models.User, Depends(require_creator)],
+    db: Session = Depends(get_db),
+):
+    """
+    Create a Mux direct upload and a draft video row. Client PUTs the file to `upload_url`,
+    then polls GET /videos/{video_id}/mux-upload-status until `ready`.
+    """
+    title = body.title.strip()
+    if not title:
+        raise HTTPException(400, "Title is required")
+    mux_data = mux_create_direct_upload(cors_origin=body.cors_origin)
+    mux_upload_id = mux_data.get("id")
+    upload_url = mux_data.get("url")
+    if not mux_upload_id or not upload_url:
+        raise HTTPException(502, "Mux did not return upload id or URL")
+    v = models.Video(
+        creator_id=user.id,
+        title=title,
+        description=(body.description or "").strip() or None,
+        category=(body.category or "").strip() or None,
+        status="draft",
+        is_locked=False,
+        mux_upload_id=mux_upload_id,
+        mux_pending_publish=bool(body.publish_after_ready),
+    )
+    db.add(v)
+    db.commit()
+    db.refresh(v)
+    return {
+        "video_id": v.id,
+        "upload_url": upload_url,
+        "mux_upload_id": mux_upload_id,
+        "timeout": mux_data.get("timeout"),
+    }
+
+
+@router.get("/{video_id}/mux-upload-status")
+def mux_upload_poll_status(
+    video_id: str,
+    user: Annotated[models.User, Depends(require_creator)],
+    db: Session = Depends(get_db),
+):
+    """Poll Mux after the browser finishes PUT to `upload_url`; updates video when asset is ready."""
+    v = db.get(models.Video, video_id)
+    if not v or v.creator_id != user.id:
+        raise HTTPException(404, "Not found")
+
+    if v.playback_id:
+        if v.mux_upload_id:
+            v.mux_upload_id = None
+            v.mux_pending_publish = False
+            db.commit()
+        return {"status": "ready", "playback_id": v.playback_id, "video_id": v.id}
+
+    if not v.mux_upload_id:
+        return {
+            "status": "idle",
+            "message": "No direct upload in progress for this video.",
+            "video_id": v.id,
+        }
+
+    try:
+        up = mux_get_upload(v.mux_upload_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(502, f"Mux upload lookup failed: {e!s}") from e
+
+    u_status = (up.get("status") or "").strip()
+
+    if u_status == "waiting":
+        return {"status": "waiting_upload", "video_id": v.id}
+
+    if u_status in ("errored", "timed_out", "cancelled"):
+        v.mux_upload_id = None
+        v.mux_pending_publish = False
+        db.commit()
+        return {
+            "status": "error",
+            "message": f"Mux direct upload {u_status}",
+            "video_id": v.id,
+        }
+
+    if u_status != "asset_created":
+        return {"status": "waiting_mux", "video_id": v.id}
+
+    asset_id = up.get("asset_id")
+    if not asset_id:
+        return {"status": "waiting_mux", "video_id": v.id}
+
+    try:
+        asset = mux_get_asset(asset_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(502, f"Mux asset lookup failed: {e!s}") from e
+
+    ast_status = (asset.get("status") or "").strip()
+    if ast_status == "errored":
+        v.mux_upload_id = None
+        v.mux_pending_publish = False
+        db.commit()
+        return {
+            "status": "error",
+            "message": "Mux asset encoding failed",
+            "video_id": v.id,
+        }
+
+    if ast_status != "ready":
+        return {"status": "processing", "video_id": v.id}
+
+    pid = _mux_playback_id_from_asset(asset)
+    if not pid:
+        return {"status": "processing", "message": "Asset ready; waiting for playback id", "video_id": v.id}
+
+    dur = asset.get("duration")
+    try:
+        d_int = int(round(float(dur))) if dur is not None else None
+    except (TypeError, ValueError):
+        d_int = None
+
+    v.playback_id = pid
+    if d_int is not None:
+        v.duration_seconds = d_int
+    v.mux_upload_id = None
+    if v.mux_pending_publish:
+        v.status = "published"
+    else:
+        v.status = "draft"
+    v.mux_pending_publish = False
+    db.commit()
+    db.refresh(v)
+    return {"status": "ready", "playback_id": pid, "video_id": v.id}
 
 
 @router.get("")
@@ -166,6 +332,7 @@ def create_video(
         title=body.title,
         description=body.description,
         video_url=body.video_url,
+        playback_id=body.playback_id,
         thumbnail_url=body.thumbnail_url,
         duration_seconds=body.duration_seconds,
         category=body.category,

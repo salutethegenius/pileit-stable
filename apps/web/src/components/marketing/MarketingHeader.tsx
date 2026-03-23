@@ -24,20 +24,38 @@ export default function MarketingHeader() {
       <Link href="/" style={{ display: "flex", alignItems: "center", lineHeight: 0 }}>
         <PileItLockup markSize={28} textSize={20} gap={28 * 0.28} />
       </Link>
-      <Typography
-        component={Link}
-        href="/login"
-        sx={{
-          fontSize: 14,
-          fontWeight: 600,
-          color: PILEIT_THEME.textDim,
-          textDecoration: "none",
-          letterSpacing: "0.02em",
-          "&:hover": { color: PILEIT_THEME.textSecondary },
-        }}
-      >
-        Log in
-      </Typography>
+      <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 1.5, sm: 2 }, flexShrink: 0 }}>
+        <Typography
+          component={Link}
+          href="/register"
+          sx={{
+            fontSize: 14,
+            fontWeight: 600,
+            color: PILEIT_THEME.accentLight,
+            textDecoration: "none",
+            whiteSpace: "nowrap",
+            letterSpacing: "0.02em",
+            "&:hover": { color: PILEIT_THEME.accent },
+          }}
+        >
+          Sign up
+        </Typography>
+        <Typography
+          component={Link}
+          href="/login"
+          sx={{
+            fontSize: 14,
+            fontWeight: 600,
+            color: PILEIT_THEME.textSecondary,
+            textDecoration: "none",
+            whiteSpace: "nowrap",
+            letterSpacing: "0.02em",
+            "&:hover": { color: PILEIT_THEME.textPrimary },
+          }}
+        >
+          Log in
+        </Typography>
+      </Box>
     </Box>
   );
 }

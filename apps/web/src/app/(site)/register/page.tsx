@@ -17,6 +17,33 @@ import {
   isNextParamIgnored,
   safeInternalPath,
 } from "@/lib/navigation";
+import { ApiError } from "@/lib/api";
+
+function registerErrorMessage(err: unknown): string {
+  if (err instanceof ApiError) {
+    if (err.body) {
+      try {
+        const parsed = JSON.parse(err.body) as { detail?: unknown };
+        const d = parsed.detail;
+        if (typeof d === "string") return d;
+        if (Array.isArray(d)) {
+          const parts = d.map((x) =>
+            typeof x === "object" && x && "msg" in x ? String((x as { msg: string }).msg) : String(x)
+          );
+          if (parts.length) return parts.join(" ");
+        }
+      } catch {
+        /* fall through */
+      }
+    }
+    if (err.status === 400) return "Could not create account. That email may already be registered.";
+    return err.message || `Request failed (${err.status}).`;
+  }
+  if (err instanceof TypeError && typeof err.message === "string" && err.message.includes("fetch")) {
+    return "Cannot reach the API. Is the backend running? On localhost the app expects http://127.0.0.1:8000 unless NEXT_PUBLIC_API_URL is set.";
+  }
+  return "Could not create account. Check your connection and try again.";
+}
 
 function RegisterForm() {
   const { register } = useAuth();
@@ -49,8 +76,8 @@ function RegisterForm() {
       await register(email, password, displayName);
       const destination = nextPath !== "/" ? nextPath : "/browse";
       router.push(destination);
-    } catch {
-      setErr("Could not create account. Try a different email.");
+    } catch (e) {
+      setErr(registerErrorMessage(e));
     } finally {
       setLoading(false);
     }
