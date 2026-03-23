@@ -5,11 +5,11 @@ import JsonLd from "@/components/seo/JsonLd";
 import { fetchVideoById } from "@/lib/serverCatalog";
 import { getVideoById } from "@/data/mock";
 import {
-  pickHttpsImage,
+  pickHttpsImageForOg,
   truncateMetaDescription,
   truncateMetaTitle,
 } from "@/lib/seoMetadata";
-import { getSiteUrl } from "@/lib/site";
+import { getDefaultOgImageUrl, getSiteUrl } from "@/lib/site";
 
 type Props = { params: { videoId: string } };
 
@@ -29,7 +29,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const description = truncateMetaDescription(
     video.description?.trim() ? video.description.trim() : fallbackDesc
   );
-  const image = pickHttpsImage(video.backdropUrl, video.thumbnailUrl);
+  const videoThumbOg = pickHttpsImageForOg(video.backdropUrl, video.thumbnailUrl);
+  const ogImageUrl = videoThumbOg ?? getDefaultOgImageUrl();
+  const defaultOgMeta = {
+    width: 1200,
+    height: 630,
+    alt: "PileIt — Bahamian creators. Watch, tip, shop, pile on.",
+  } as const;
 
   return {
     title: { absolute: titleShort },
@@ -40,13 +46,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description,
       url: canonical,
       type: "video.other",
-      ...(image ? { images: [{ url: image, alt: video.title }] } : {}),
+      images: [
+        videoThumbOg
+          ? { url: ogImageUrl, alt: video.title }
+          : { url: ogImageUrl, ...defaultOgMeta },
+      ],
     },
     twitter: {
       card: "summary_large_image",
       title: titleShort,
       description,
-      ...(image ? { images: [image] } : {}),
+      images: [ogImageUrl],
     },
   };
 }
@@ -57,7 +67,8 @@ export default async function WatchPage({ params }: Props) {
   if (!video) notFound();
   const site = getSiteUrl();
   const videoPageUrl = `${site}/watch/${encodeURIComponent(video.id)}`;
-  const image = pickHttpsImage(video.backdropUrl, video.thumbnailUrl);
+  const ogImageUrl =
+    pickHttpsImageForOg(video.backdropUrl, video.thumbnailUrl) ?? getDefaultOgImageUrl();
   const durationIso =
     typeof video.durationSeconds === "number" && video.durationSeconds > 0
       ? `PT${Math.round(video.durationSeconds)}S`
@@ -70,7 +81,7 @@ export default async function WatchPage({ params }: Props) {
       video.description || `Video by ${video.creator.displayName} on PileIt.`,
       500
     ),
-    thumbnailUrl: image,
+    thumbnailUrl: ogImageUrl,
     uploadDate: video.createdAt,
     url: videoPageUrl,
     ...(durationIso ? { duration: durationIso } : {}),
