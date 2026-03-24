@@ -26,22 +26,29 @@ import CategoryMediaPlaceholder from "@/components/brand/CategoryMediaPlaceholde
 
 type Props = { video: PileItVideo; anchorElement: HTMLElement };
 
+/** Hover preview: slightly wider than the tile, but capped so it stays a “mini” popup. */
+function miniPortalWidth(rectWidth: number): number {
+  const w = Math.round(rectWidth * 1.06);
+  return Math.min(240, Math.max(168, w));
+}
+
 export default function MiniPortal({ video, anchorElement }: Props) {
   const setPortal = usePortal();
   const { openDetail } = useDetailModal();
   const rect = anchorElement.getBoundingClientRect();
   const watchHref = `/watch/${encodeURIComponent(video.id)}`;
+  const cardWidth = miniPortalWidth(rect.width);
 
   return (
     <Card
       onPointerLeave={() => setPortal(null, null)}
       sx={{
-        width: rect.width * 1.5,
-        height: "100%",
+        width: cardWidth,
+        maxWidth: "min(240px, 92vw)",
         bgcolor: "#2a2a2a",
         border: "1px solid #333",
         borderRadius: 1,
-        boxShadow: "0 16px 48px rgba(0,0,0,0.65)",
+        boxShadow: "0 12px 32px rgba(0,0,0,0.55)",
         overflow: "hidden",
         "&:hover .pileit-mini-play": {
           color: "primary.main",
@@ -68,8 +75,8 @@ export default function MiniPortal({ video, anchorElement }: Props) {
       >
         <BoxImage video={video} />
       </Box>
-      <CardContent sx={{ pt: 1.5, pb: 1 }}>
-        <Stack spacing={1}>
+      <CardContent sx={{ pt: 1, pb: 0.75, px: 1.25, "&:last-child": { pb: 0.75 } }}>
+        <Stack spacing={0.5}>
           <Stack
             direction="row"
             alignItems="center"
@@ -92,36 +99,36 @@ export default function MiniPortal({ video, anchorElement }: Props) {
               }}
               aria-label={`Play ${video.title}`}
             >
-              <PlayCircleIcon sx={{ width: 40, height: 40 }} />
+              <PlayCircleIcon sx={{ width: 28, height: 28 }} />
             </IconButton>
-            <IconButton size="small" sx={{ color: "text.primary" }} aria-label="Add to list">
-              <AddIcon />
+            <IconButton size="small" sx={{ color: "text.primary", p: 0.35 }} aria-label="Add to list">
+              <AddIcon sx={{ fontSize: 18 }} />
             </IconButton>
-            <IconButton size="small" sx={{ color: "text.primary" }} aria-label="Like">
-              <ThumbUpOffAltIcon />
+            <IconButton size="small" sx={{ color: "text.primary", p: 0.35 }} aria-label="Like">
+              <ThumbUpOffAltIcon sx={{ fontSize: 18 }} />
             </IconButton>
             <Box sx={{ flex: 1, minWidth: 8 }} />
             <IconButton
               size="small"
-              sx={{ color: "primary.main" }}
+              sx={{ color: "primary.main", p: 0.35 }}
               aria-label="Tip creator"
             >
-              <AttachMoneyIcon />
+              <AttachMoneyIcon sx={{ fontSize: 18 }} />
             </IconButton>
             <IconButton
               size="small"
               onClick={() => openDetail(video)}
-              sx={{ color: "text.primary" }}
+              sx={{ color: "text.primary", p: 0.35 }}
               aria-label="More info"
             >
-              <ExpandMoreIcon />
+              <ExpandMoreIcon sx={{ fontSize: 18 }} />
             </IconButton>
           </Stack>
-          <Stack direction="row" alignItems="center" flexWrap="wrap" gap={0.75}>
+          <Stack direction="row" alignItems="center" flexWrap="wrap" gap={0.5}>
             <Typography
-              variant="body2"
+              variant="caption"
               component="span"
-              sx={{ color: "text.primary", fontWeight: 500 }}
+              sx={{ color: "text.primary", fontWeight: 500, lineHeight: 1.35 }}
             >
               {formatCount(video.viewCount)} views
               <Box component="span" sx={{ color: "text.secondary", mx: 0.75 }}>
@@ -138,17 +145,18 @@ export default function MiniPortal({ video, anchorElement }: Props) {
                 label="Subs Only"
                 size="small"
                 sx={{
-                  height: 22,
+                  height: 20,
+                  fontSize: "0.65rem",
                   bgcolor: "rgba(0,0,0,0.5)",
                   color: "#fff",
                   border: "1px solid #444",
                 }}
               />
             ) : (
-              <Chip label="Free" size="small" sx={{ height: 22 }} />
+              <Chip label="Free" size="small" sx={{ height: 20, fontSize: "0.65rem" }} />
             )}
           </Stack>
-          <Stack direction="row" spacing={1} alignItems="center">
+          <Stack direction="row" spacing={0.75} alignItems="center">
             <Avatar
               src={
                 video.creator.avatarUrl
@@ -156,9 +164,9 @@ export default function MiniPortal({ video, anchorElement }: Props) {
                   : undefined
               }
               alt={`${video.creator.displayName} avatar`}
-              sx={{ width: 28, height: 28 }}
+              sx={{ width: 22, height: 22 }}
             />
-            <Typography variant="body2" fontWeight={700}>
+            <Typography variant="caption" fontWeight={700} sx={{ lineHeight: 1.2 }}>
               {video.creator.displayName}
             </Typography>
             <CreatorBadges
@@ -167,11 +175,16 @@ export default function MiniPortal({ video, anchorElement }: Props) {
               size="small"
             />
           </Stack>
-          <Typography variant="subtitle1" fontWeight={800} fontStyle="italic">
+          <Typography variant="body2" fontWeight={800} fontStyle="italic" sx={{ lineHeight: 1.25 }}>
             {video.title}
           </Typography>
           <Stack direction="row" gap={0.5} flexWrap="wrap">
-            <Chip label={video.category} size="small" variant="outlined" />
+            <Chip
+              label={video.category}
+              size="small"
+              variant="outlined"
+              sx={{ height: 20, fontSize: "0.65rem" }}
+            />
           </Stack>
         </Stack>
       </CardContent>
@@ -205,8 +218,8 @@ function BoxImage({ video }: { video: PileItVideo }) {
           src={IMG.portalThumb(src)}
           alt={`${video.title} preview image`}
           fill
-          sizes="520px"
-          quality={72}
+          sizes="240px"
+          quality={68}
           loading="lazy"
           style={{ objectFit: "cover" }}
           onError={() => setImgFailed(true)}
@@ -220,13 +233,17 @@ function BoxImage({ video }: { video: PileItVideo }) {
           left: 0,
           right: 0,
           bottom: 0,
-          px: 2,
-          pb: 0.5,
+          px: 1,
+          pb: 0.25,
           position: "absolute",
           pointerEvents: "none",
         }}
       >
-        <Typography component="p" variant="h6" sx={{ fontWeight: 700, width: "80%", m: 0 }}>
+        <Typography
+          component="p"
+          variant="caption"
+          sx={{ fontWeight: 700, width: "90%", m: 0, lineHeight: 1.2, textShadow: "0 1px 4px rgba(0,0,0,0.85)" }}
+        >
           {video.title}
         </Typography>
       </Box>

@@ -53,7 +53,7 @@ export default function VideoPortalContainer() {
           position: "absolute",
           display: "inline-block",
           ...(rect && {
-            top: rect.top + window.scrollY - 0.75 * rect.height,
+            top: rect.top + window.scrollY - 0.45 * rect.height,
             ...(isLastElement
               ? {
                   right: document.documentElement.clientWidth - rect.right,
@@ -61,7 +61,7 @@ export default function VideoPortalContainer() {
               : {
                   left: isFirstElement
                     ? rect.left
-                    : rect.left - 0.25 * rect.width,
+                    : rect.left - 0.12 * rect.width,
                 }),
           }),
         }}
