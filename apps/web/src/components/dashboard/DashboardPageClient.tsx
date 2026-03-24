@@ -19,8 +19,17 @@ import Stack from "@mui/material/Stack";
 import Skeleton from "@mui/material/Skeleton";
 import Alert from "@mui/material/Alert";
 import MenuItem from "@mui/material/MenuItem";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Switch from "@mui/material/Switch";
+import FormControl from "@mui/material/FormControl";
+import InputLabel from "@mui/material/InputLabel";
+import Select from "@mui/material/Select";
 import { useAuth } from "@/providers/AuthProvider";
-import { apiFetch, getApiBase } from "@/lib/api";
+import { apiFetch, formatApiErrorMessage, getApiBase } from "@/lib/api";
 import { PILEIT_THEME } from "@/theme/theme";
 import { formatBsd } from "@/utils/currency";
 
@@ -36,6 +45,8 @@ type Overview = {
 type MineVideo = {
   id: string;
   title: string;
+  description?: string | null;
+  category?: string | null;
   status: string;
   view_count: number;
   tip_total: number;
@@ -93,6 +104,30 @@ export default function DashboardPageClient() {
   const [usageLoading, setUsageLoading] = useState(false);
   const [usageErr, setUsageErr] = useState<string | null>(null);
 
+  const [editVideo, setEditVideo] = useState<MineVideo | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editCategory, setEditCategory] = useState("");
+  const [editIsrc, setEditIsrc] = useState("");
+  const [editLocked, setEditLocked] = useState(false);
+  const [editStatus, setEditStatus] = useState<"draft" | "published">("draft");
+  const [editSaving, setEditSaving] = useState(false);
+  const [editErr, setEditErr] = useState<string | null>(null);
+
+  const [deleteTarget, setDeleteTarget] = useState<MineVideo | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteErr, setDeleteErr] = useState<string | null>(null);
+
+  const loadMineVideos = useCallback(() => {
+    if (!accessToken || !user || (user.accountType !== "creator" && user.accountType !== "admin")) {
+      setMine([]);
+      return;
+    }
+    apiFetch<MineVideo[]>("/videos/mine", { accessToken })
+      .then(setMine)
+      .catch(() => setMine([]));
+  }, [accessToken, user]);
+
   const loadMon = useCallback(() => {
     if (!accessToken || user?.accountType !== "creator") {
       setMonStatus(null);
@@ -115,11 +150,9 @@ export default function DashboardPageClient() {
     apiFetch<Overview>("/dashboard/overview", { accessToken })
       .then(setOverview)
       .catch(() => setOverview(null));
-    apiFetch<MineVideo[]>("/videos/mine", { accessToken })
-      .then(setMine)
-      .catch(() => setMine([]));
+    loadMineVideos();
     loadMon();
-  }, [accessToken, user, loadMon]);
+  }, [accessToken, user, loadMon, loadMineVideos]);
 
   const addProduct = async () => {
     if (!accessToken || !productName || !productPrice) return;
@@ -134,6 +167,66 @@ export default function DashboardPageClient() {
     });
     setProductName("");
     setProductPrice("");
+  };
+
+  const openEditVideo = (v: MineVideo) => {
+    setEditVideo(v);
+    setEditTitle(v.title);
+    setEditDescription(v.description ?? "");
+    setEditCategory(v.category ?? "");
+    setEditIsrc(v.isrc ?? "");
+    setEditLocked(v.is_locked);
+    setEditStatus(v.status === "published" ? "published" : "draft");
+    setEditErr(null);
+  };
+
+  const saveVideoEdit = async () => {
+    if (!accessToken || !editVideo) return;
+    const t = editTitle.trim();
+    if (!t) {
+      setEditErr("Title is required.");
+      return;
+    }
+    setEditErr(null);
+    setEditSaving(true);
+    try {
+      await apiFetch(`/videos/${encodeURIComponent(editVideo.id)}`, {
+        method: "PUT",
+        accessToken,
+        body: JSON.stringify({
+          title: t,
+          description: editDescription.trim() || null,
+          category: editCategory.trim() || null,
+          isrc: editIsrc.trim() || null,
+          is_locked: editLocked,
+          status: editStatus,
+        }),
+      });
+      setEditVideo(null);
+      loadMineVideos();
+    } catch (e) {
+      setEditErr(formatApiErrorMessage(e));
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
+  const confirmDeleteVideo = async () => {
+    if (!accessToken || !deleteTarget) return;
+    setDeleteErr(null);
+    setDeleteBusy(true);
+    try {
+      await apiFetch(`/videos/${encodeURIComponent(deleteTarget.id)}`, {
+        method: "DELETE",
+        accessToken,
+      });
+      setDeleteTarget(null);
+      loadMineVideos();
+    } catch (e) {
+      setDeleteErr(formatApiErrorMessage(e));
+    } finally {
+      setDeleteBusy(false);
+    }
   };
 
   const loadIsrcUsage = async () => {
@@ -498,6 +591,7 @@ export default function DashboardPageClient() {
                   <TableCell>Views</TableCell>
                   <TableCell>Tips</TableCell>
                   <TableCell>Locked</TableCell>
+                  <TableCell align="right">Watch / actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -511,10 +605,159 @@ export default function DashboardPageClient() {
                     <TableCell>{v.view_count}</TableCell>
                     <TableCell>{v.tip_total}</TableCell>
                     <TableCell>{v.is_locked ? "Yes" : "No"}</TableCell>
+                    <TableCell align="right">
+                      <Stack direction="row" spacing={0.5} justifyContent="flex-end" flexWrap="wrap" useFlexGap>
+                        <Button
+                          size="small"
+                          component={Link}
+                          href={`/watch/${encodeURIComponent(v.id)}`}
+                          variant="text"
+                          sx={{ textTransform: "none" }}
+                        >
+                          Watch
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => openEditVideo(v)}
+                          sx={{ textTransform: "none" }}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          size="small"
+                          color="error"
+                          variant="outlined"
+                          onClick={() => {
+                            setDeleteErr(null);
+                            setDeleteTarget(v);
+                          }}
+                          sx={{ textTransform: "none" }}
+                        >
+                          Delete
+                        </Button>
+                      </Stack>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
+
+            <Dialog
+              open={Boolean(editVideo)}
+              onClose={() => !editSaving && setEditVideo(null)}
+              fullWidth
+              maxWidth="sm"
+            >
+              <DialogTitle>Edit video</DialogTitle>
+              <DialogContent>
+                <Stack spacing={2} sx={{ mt: 1 }}>
+                  {editErr ? <Alert severity="error">{editErr}</Alert> : null}
+                  <TextField
+                    label="Title"
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    fullWidth
+                    required
+                    size="small"
+                  />
+                  <TextField
+                    label="Description"
+                    value={editDescription}
+                    onChange={(e) => setEditDescription(e.target.value)}
+                    fullWidth
+                    multiline
+                    minRows={2}
+                    size="small"
+                  />
+                  <TextField
+                    label="Category"
+                    value={editCategory}
+                    onChange={(e) => setEditCategory(e.target.value)}
+                    fullWidth
+                    size="small"
+                    placeholder="e.g. Music"
+                  />
+                  <TextField
+                    label="ISRC (optional)"
+                    value={editIsrc}
+                    onChange={(e) => setEditIsrc(e.target.value)}
+                    fullWidth
+                    size="small"
+                    placeholder="e.g. US-UM1-25-00001"
+                  />
+                  <FormControl fullWidth size="small">
+                    <InputLabel id="edit-video-status-label">Visibility</InputLabel>
+                    <Select
+                      labelId="edit-video-status-label"
+                      label="Visibility"
+                      value={editStatus}
+                      onChange={(e) =>
+                        setEditStatus(e.target.value as "draft" | "published")
+                      }
+                    >
+                      <MenuItem value="draft">Draft (not on public browse)</MenuItem>
+                      <MenuItem value="published">Published</MenuItem>
+                    </Select>
+                  </FormControl>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={editLocked}
+                        onChange={(e) => setEditLocked(e.target.checked)}
+                      />
+                    }
+                    label="Subscriber-only (locked)"
+                  />
+                </Stack>
+              </DialogContent>
+              <DialogActions>
+                <Button onClick={() => setEditVideo(null)} disabled={editSaving} sx={{ textTransform: "none" }}>
+                  Cancel
+                </Button>
+                <Button
+                  variant="contained"
+                  onClick={() => void saveVideoEdit()}
+                  disabled={editSaving}
+                  sx={{ textTransform: "none" }}
+                >
+                  {editSaving ? "Saving…" : "Save"}
+                </Button>
+              </DialogActions>
+            </Dialog>
+
+            <Dialog
+              open={Boolean(deleteTarget)}
+              onClose={() => !deleteBusy && setDeleteTarget(null)}
+            >
+              <DialogTitle>Delete video?</DialogTitle>
+              <DialogContent>
+                {deleteErr ? (
+                  <Alert severity="error" sx={{ mb: 2 }}>
+                    {deleteErr}
+                  </Alert>
+                ) : null}
+                <Typography variant="body2">
+                  This removes{" "}
+                  <strong>{deleteTarget?.title}</strong> from PileIt. Tips on this video stay in your
+                  history; related comments and watchlist entries are removed.
+                </Typography>
+              </DialogContent>
+              <DialogActions>
+                <Button onClick={() => setDeleteTarget(null)} disabled={deleteBusy} sx={{ textTransform: "none" }}>
+                  Cancel
+                </Button>
+                <Button
+                  color="error"
+                  variant="contained"
+                  onClick={() => void confirmDeleteVideo()}
+                  disabled={deleteBusy}
+                  sx={{ textTransform: "none" }}
+                >
+                  {deleteBusy ? "Deleting…" : "Delete"}
+                </Button>
+              </DialogActions>
+            </Dialog>
           </Box>
         )}
 

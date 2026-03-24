@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
@@ -12,7 +12,12 @@ from app import models
 from app.deps import get_current_user, get_current_user_optional, require_creator
 from app.isrc_utils import normalize_isrc
 from app.monetization import creator_tip_subscribe_embed
-from app.mux_client import mux_create_direct_upload, mux_get_asset, mux_get_upload
+from app.mux_client import (
+    mux_create_direct_upload,
+    mux_get_asset,
+    mux_get_upload,
+    mux_static_thumbnail_url,
+)
 
 router = APIRouter(prefix="/videos", tags=["videos"])
 VIEW_DEDUPE_WINDOW_MINUTES = 30
@@ -49,6 +54,46 @@ class VideoCreate(BaseModel):
     is_locked: bool = False
     status: str = "draft"
     isrc: str | None = None
+
+
+class VideoUpdate(BaseModel):
+    """Partial update — only sent fields are applied (does not reset Mux fields)."""
+
+    title: str | None = Field(None, max_length=512)
+    description: str | None = None
+    category: str | None = Field(None, max_length=64)
+    is_locked: bool | None = None
+    status: str | None = Field(None, max_length=32)
+    isrc: str | None = None
+    thumbnail_url: str | None = Field(None, max_length=1024)
+
+    @field_validator("title", mode="before")
+    @classmethod
+    def strip_title(cls, v):
+        if v is None:
+            return None
+        if isinstance(v, str):
+            s = v.strip()
+            return s if s else None
+        return v
+
+    @field_validator("description", "category", mode="before")
+    @classmethod
+    def empty_str_none(cls, v):
+        if v is None:
+            return None
+        if isinstance(v, str) and not v.strip():
+            return None
+        return v.strip() if isinstance(v, str) else v
+
+    @field_validator("status")
+    @classmethod
+    def status_allowed(cls, v: str | None):
+        if v is None:
+            return None
+        if v not in ("draft", "published"):
+            raise ValueError("status must be draft or published")
+        return v
 
 
 def _parse_isrc_optional(raw: str | None) -> str | None:
@@ -134,6 +179,49 @@ def _serialize(v: models.Video) -> dict:
     }
 
 
+def _delete_pile_comments_for_video(db: Session, video_id: str) -> None:
+    """Delete thread tree for a video (self-referential parent_id)."""
+    while True:
+        rows = (
+            db.query(models.PileComment)
+            .filter(models.PileComment.video_id == video_id)
+            .all()
+        )
+        if not rows:
+            return
+        pointed = {r.parent_id for r in rows if r.parent_id is not None}
+        leaves = [r for r in rows if r.id not in pointed]
+        if not leaves:
+            leaves = [rows[0]]
+        for r in leaves:
+            db.delete(r)
+        db.flush()
+
+
+def _cascade_delete_video_rows(db: Session, video_id: str) -> None:
+    _delete_pile_comments_for_video(db, video_id)
+    db.query(models.LiveChatMessage).filter(
+        models.LiveChatMessage.video_id == video_id
+    ).delete(synchronize_session=False)
+    db.query(models.Watchlist).filter(models.Watchlist.video_id == video_id).delete(
+        synchronize_session=False
+    )
+    db.query(models.Tip).filter(models.Tip.video_id == video_id).update(
+        {"video_id": None},
+        synchronize_session=False,
+    )
+    db.query(models.ContentReport).filter(
+        models.ContentReport.target_type == "video",
+        models.ContentReport.target_id == video_id,
+    ).delete(synchronize_session=False)
+    db.query(models.IsrcPlayEvent).filter(
+        models.IsrcPlayEvent.video_id == video_id
+    ).delete(synchronize_session=False)
+    db.query(models.VideoViewEvent).filter(
+        models.VideoViewEvent.video_id == video_id
+    ).delete(synchronize_session=False)
+
+
 @router.get("/mine")
 def list_my_videos(
     user: Annotated[models.User, Depends(require_creator)],
@@ -149,6 +237,8 @@ def list_my_videos(
         {
             "id": v.id,
             "title": v.title,
+            "description": v.description,
+            "category": v.category,
             "status": v.status,
             "view_count": v.view_count,
             "tip_total": float(v.tip_total),
@@ -297,6 +387,9 @@ def mux_upload_poll_status(
         d_int = None
 
     v.playback_id = pid
+    thumb = mux_static_thumbnail_url(pid)
+    if thumb:
+        v.thumbnail_url = thumb
     if d_int is not None:
         v.duration_seconds = d_int
     v.mux_upload_id = None
@@ -425,13 +518,16 @@ def create_video(
     db: Session = Depends(get_db),
 ):
     isrc_val = _parse_isrc_optional(body.isrc)
+    thumb = body.thumbnail_url
+    if not thumb and body.playback_id:
+        thumb = mux_static_thumbnail_url(body.playback_id)
     v = models.Video(
         creator_id=user.id,
         title=body.title,
         description=body.description,
         video_url=body.video_url,
         playback_id=body.playback_id,
-        thumbnail_url=body.thumbnail_url,
+        thumbnail_url=thumb,
         duration_seconds=body.duration_seconds,
         category=body.category,
         is_locked=body.is_locked,
@@ -447,17 +543,29 @@ def create_video(
 @router.put("/{video_id}")
 def update_video(
     video_id: str,
-    body: VideoCreate,
+    body: VideoUpdate,
     user: Annotated[models.User, Depends(require_creator)],
     db: Session = Depends(get_db),
 ):
     v = db.get(models.Video, video_id)
     if not v or v.creator_id != user.id:
         raise HTTPException(404, "Not found")
-    data = body.model_dump()
-    if "isrc" in data:
-        data["isrc"] = _parse_isrc_optional(data.get("isrc"))
-    for k, val in data.items():
+    patch = body.model_dump(exclude_unset=True)
+    if "isrc" in patch:
+        patch["isrc"] = _parse_isrc_optional(patch.get("isrc"))
+    allowed = {
+        "title",
+        "description",
+        "category",
+        "is_locked",
+        "status",
+        "isrc",
+        "thumbnail_url",
+    }
+    patch = {k: val for k, val in patch.items() if k in allowed}
+    if "title" in patch and patch["title"] is None:
+        raise HTTPException(400, "Title cannot be empty")
+    for k, val in patch.items():
         setattr(v, k, val)
     db.commit()
     return {"ok": True}
@@ -472,6 +580,8 @@ def delete_video(
     v = db.get(models.Video, video_id)
     if not v or v.creator_id != user.id:
         raise HTTPException(404, "Not found")
+    vid = v.id
+    _cascade_delete_video_rows(db, vid)
     db.delete(v)
     db.commit()
     return {"ok": True}

@@ -1,6 +1,7 @@
 import type { PileItVideo } from "@/types/content";
 import { IMG } from "@/lib/imageUrls";
 import { resolveMediaUrl } from "@/lib/mediaUrls";
+import { muxThumbnailUrl } from "@/lib/muxThumbnails";
 
 /** Backend GET /videos row shape */
 export type ApiVideoRow = {
@@ -58,8 +59,15 @@ function mapApiVideoToPileItVideoInternal(
     shareCount?: number;
   }
 ): PileItVideo {
-  const thumb = row.thumbnail_url || "";
-  const back = row.backdrop_url || row.thumbnail_url || "";
+  const thumb =
+    (row.thumbnail_url && row.thumbnail_url.trim()) ||
+    muxThumbnailUrl(row.playback_id) ||
+    "";
+  const back =
+    (row.backdrop_url && row.backdrop_url.trim()) ||
+    (row.thumbnail_url && row.thumbnail_url.trim()) ||
+    muxThumbnailUrl(row.playback_id) ||
+    "";
   return {
     id: row.id,
     title: row.title,

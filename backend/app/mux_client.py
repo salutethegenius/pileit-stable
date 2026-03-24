@@ -99,3 +99,17 @@ def mux_get_asset(asset_id: str) -> dict:
         raise HTTPException(status_code=502, detail=_MSG_UPLOAD_FAILED)
     data = payload.get("data") if isinstance(payload, dict) else None
     return data if isinstance(data, dict) else {}
+
+
+def mux_static_thumbnail_url(playback_id: str | None) -> str | None:
+    """
+    Poster frame URL via Mux image CDN (no API key; works for public playback IDs).
+    See https://docs.mux.com/guides/video/get-images-from-a-video
+    """
+    pid = (playback_id or "").strip()
+    if not pid:
+        return None
+    return (
+        f"https://image.mux.com/{pid}/thumbnail.jpg"
+        f"?time=1&width=640&fit_mode=smartcrop"
+    )

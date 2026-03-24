@@ -28,6 +28,11 @@ const nextConfig = {
         hostname: "storage.googleapis.com",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "image.mux.com",
+        pathname: "/**",
+      },
     ],
   },
 };

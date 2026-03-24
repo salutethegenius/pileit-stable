@@ -43,6 +43,45 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Human-readable message from apiFetch failures (FastAPI `detail` string or validation list).
+ */
+export function formatApiErrorMessage(err: unknown): string {
+  if (err instanceof ApiError) {
+    const raw = err.body?.trim();
+    if (raw) {
+      try {
+        const j = JSON.parse(raw) as unknown;
+        if (typeof j === "object" && j !== null && "detail" in j) {
+          const d = (j as { detail: unknown }).detail;
+          if (typeof d === "string") return d;
+          if (Array.isArray(d)) {
+            const parts = d
+              .map((item) => {
+                if (typeof item === "object" && item !== null && "msg" in item) {
+                  return String((item as { msg: unknown }).msg);
+                }
+                if (typeof item === "string") return item;
+                return null;
+              })
+              .filter((x): x is string => Boolean(x));
+            if (parts.length) return parts.join("; ");
+          }
+        }
+      } catch {
+        /* plain text body */
+      }
+      if (raw.length > 0 && raw.length < 600) return raw;
+    }
+    if (err.message && err.message !== "Request failed") {
+      return `${err.message} (${err.status})`;
+    }
+    return `Request failed (${err.status})`;
+  }
+  if (err instanceof Error) return err.message;
+  return "Something went wrong.";
+}
+
 type TokenPairListener = (access: string, refresh: string) => void;
 let tokenPairListener: TokenPairListener | null = null;
 
