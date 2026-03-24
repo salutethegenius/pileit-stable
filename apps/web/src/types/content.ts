@@ -4,6 +4,10 @@ export interface Creator {
   displayName: string;
   category: string;
   subscriberCount: number;
+  /** Free follows (separate from paid subscribers). */
+  followerCount?: number;
+  /** Present when the API had an auth context (usually false from public SSR). */
+  viewerFollows?: boolean;
   verified: boolean;
   accentColor: string;
   avatarUrl: string;

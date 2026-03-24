@@ -9,6 +9,8 @@ export type ApiCreatorRow = {
   display_name: string;
   category: string | null;
   subscriber_count: number;
+  follower_count?: number;
+  viewer_follows?: boolean;
   verified: boolean;
   accent_color: string;
   avatar_url: string;
@@ -33,6 +35,8 @@ export function mapApiToCreator(row: ApiCreatorRow): Creator {
     displayName: row.display_name,
     category: row.category ?? "",
     subscriberCount: row.subscriber_count,
+    followerCount: row.follower_count ?? 0,
+    viewerFollows: row.viewer_follows,
     verified: row.verified,
     accentColor: row.accent_color,
     avatarUrl: avatar ? IMG.avatar(avatar) : "",

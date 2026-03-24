@@ -12,11 +12,21 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import get_db
 from app import models
-from app.deps import get_current_user
+from app.deps import get_current_user, get_current_user_optional
 from app.monetization import subscriber_count_for_creator
 from app.profile_media import delete_stored_media, save_profile_image
 
 router = APIRouter(prefix="/creators", tags=["creators"])
+
+
+def _follower_count(db: Session, creator_id: str) -> int:
+    return (
+        db.query(func.count(models.CreatorFollow.id))
+        .filter(models.CreatorFollow.creator_id == creator_id)
+        .scalar()
+        or 0
+    )
+
 
 ALLOWED_IMAGE_EXT = {".jpg", ".jpeg", ".png", ".webp"}
 PAYOUT_PROVIDERS = frozenset({"cash_n_go", "sun_cash", "other"})
@@ -126,6 +136,7 @@ def list_creators(db: Session = Depends(get_db)):
             .scalar()
             or 0
         )
+        follow_n = _follower_count(db, u.id)
         pub = _creator_public_fields(prof)
         out.append(
             {
@@ -134,6 +145,7 @@ def list_creators(db: Session = Depends(get_db)):
                 "display_name": u.display_name,
                 "category": prof.category if prof else None,
                 "subscriber_count": int(sub_count),
+                "follower_count": int(follow_n),
                 "verified": prof.verified if prof else False,
                 "accent_color": u.accent_color,
                 "avatar_url": u.avatar_url or "",
@@ -362,7 +374,11 @@ def update_creator_me(
 
 
 @router.get("/{handle}")
-def creator_detail(handle: str, db: Session = Depends(get_db)):
+def creator_detail(
+    handle: str,
+    db: Session = Depends(get_db),
+    viewer: models.User | None = Depends(get_current_user_optional),
+):
     u = db.query(models.User).filter(models.User.handle == handle).first()
     if not u or u.account_type not in ("creator", "admin"):
         raise HTTPException(404, "Not found")
@@ -373,6 +389,18 @@ def creator_detail(handle: str, db: Session = Depends(get_db)):
     else:
         sp = None
     sub_n = int(subscriber_count_for_creator(db, u.id))
+    follow_n = int(_follower_count(db, u.id))
+    viewer_follows = False
+    if viewer:
+        viewer_follows = (
+            db.query(models.CreatorFollow)
+            .filter(
+                models.CreatorFollow.follower_id == viewer.id,
+                models.CreatorFollow.creator_id == u.id,
+            )
+            .first()
+            is not None
+        )
     return {
         "id": u.id,
         "handle": u.handle,
@@ -387,6 +415,8 @@ def creator_detail(handle: str, db: Session = Depends(get_db)):
         "subscription_price": sp,
         "monetization_eligible": pub["monetization_eligible"],
         "subscriber_count": sub_n,
+        "follower_count": follow_n,
+        "viewer_follows": viewer_follows,
         "video_count": db.query(models.Video)
         .filter(
             models.Video.creator_id == u.id,

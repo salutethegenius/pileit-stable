@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
+import Alert from "@mui/material/Alert";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import Chip from "@mui/material/Chip";
@@ -25,11 +26,14 @@ import { IMG } from "@/lib/imageUrls";
 import { formatBsd } from "@/utils/currency";
 import CategoryMediaPlaceholder from "@/components/brand/CategoryMediaPlaceholder";
 import CreatorClaimModal from "@/components/creator/CreatorClaimModal";
+import { apiFetch, formatApiErrorMessage } from "@/lib/api";
+import { useAuth } from "@/providers/AuthProvider";
 
 type Props = { creator: Creator; videos: PileItVideo[] };
 
 export default function CreatorChannelClient({ creator, videos }: Props) {
   const router = useRouter();
+  const { user, accessToken } = useAuth();
   const [claimOpen, setClaimOpen] = useState(false);
   const [tab, setTab] = useState(0);
   const [filter, setFilter] = useState<"all" | "free" | "locked">("all");
@@ -37,10 +41,63 @@ export default function CreatorChannelClient({ creator, videos }: Props) {
   const [subOpen, setSubOpen] = useState(false);
   const [cart, setCart] = useState(0);
   const [avatarFailed, setAvatarFailed] = useState(false);
+  const [followerCount, setFollowerCount] = useState(creator.followerCount ?? 0);
+  const [following, setFollowing] = useState(creator.viewerFollows === true);
+  const [followBusy, setFollowBusy] = useState(false);
+  const [followErr, setFollowErr] = useState<string | null>(null);
+
+  const isOwnChannel = user?.id === creator.id;
 
   useEffect(() => {
     setAvatarFailed(false);
   }, [creator.avatarUrl]);
+
+  useEffect(() => {
+    setFollowerCount(creator.followerCount ?? 0);
+    if (creator.viewerFollows === true) setFollowing(true);
+  }, [creator.followerCount, creator.viewerFollows]);
+
+  useEffect(() => {
+    if (!accessToken || !creator.id) return;
+    apiFetch<{ following: boolean }>(`/follows/check/${encodeURIComponent(creator.id)}`, {
+      accessToken,
+    })
+      .then((r) => setFollowing(Boolean(r.following)))
+      .catch(() => {});
+  }, [accessToken, creator.id]);
+
+  const handleFollowToggle = useCallback(async () => {
+    if (!accessToken) {
+      router.push(`/login?next=${encodeURIComponent(`/creator/${creator.handle}`)}`);
+      return;
+    }
+    setFollowBusy(true);
+    setFollowErr(null);
+    try {
+      if (following) {
+        await apiFetch(`/follows/${encodeURIComponent(creator.id)}`, {
+          method: "DELETE",
+          accessToken,
+        });
+        setFollowing(false);
+        setFollowerCount((c) => Math.max(0, c - 1));
+      } else {
+        const res = await apiFetch<{ status?: string }>("/follows", {
+          method: "POST",
+          accessToken,
+          body: JSON.stringify({ creator_id: creator.id }),
+        });
+        setFollowing(true);
+        if (res.status !== "already_following") {
+          setFollowerCount((c) => c + 1);
+        }
+      }
+    } catch (e) {
+      setFollowErr(formatApiErrorMessage(e));
+    } finally {
+      setFollowBusy(false);
+    }
+  }, [accessToken, following, creator.id, creator.handle, router]);
 
   const showAvatarPlaceholder = !creator.avatarUrl || avatarFailed;
 
@@ -145,6 +202,7 @@ export default function CreatorChannelClient({ creator, videos }: Props) {
               <Chip label={creator.category} size="small" sx={{ height: 22 }} />
             </Stack>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              {formatCount(followerCount)} followers ·{" "}
               {formatCount(creator.subscriberCount)} subscribers ·{" "}
               {creator.videoCount ?? videos.length} videos ·{" "}
               {formatCount(Math.round(creator.totalTipsReceived ?? 0))} tips received
@@ -162,6 +220,17 @@ export default function CreatorChannelClient({ creator, videos }: Props) {
                     : claimStatus === "identity_review"
                       ? "Claim status"
                       : "Continue claim"}
+                </Button>
+              ) : null}
+              {!isOwnChannel ? (
+                <Button
+                  variant={following ? "outlined" : "contained"}
+                  color={following ? "inherit" : "primary"}
+                  disabled={followBusy}
+                  onClick={() => void handleFollowToggle()}
+                  sx={{ textTransform: "none", borderColor: following ? "divider" : undefined }}
+                >
+                  {followBusy ? "…" : following ? "Following" : "Follow"}
                 </Button>
               ) : null}
               {canMonetize ? (
@@ -186,6 +255,15 @@ export default function CreatorChannelClient({ creator, videos }: Props) {
                 Shop
               </Button>
             </Stack>
+            {followErr ? (
+              <Alert
+                severity="error"
+                sx={{ mt: 1, maxWidth: 480 }}
+                onClose={() => setFollowErr(null)}
+              >
+                {followErr}
+              </Alert>
+            ) : null}
           </Box>
         </Stack>
 

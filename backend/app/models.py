@@ -289,6 +289,27 @@ class Watchlist(Base):
     )
 
 
+class CreatorFollow(Base):
+    """Free follow (bookmarks / social signal); separate from paid Subscription."""
+
+    __tablename__ = "creator_follows"
+    __table_args__ = (
+        UniqueConstraint("follower_id", "creator_id", name="uq_creator_follow"),
+        Index("ix_creator_follows_creator", "creator_id"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    follower_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    creator_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow
+    )
+
+
 class LiveChatMessage(Base):
     __tablename__ = "live_chat_messages"
 
