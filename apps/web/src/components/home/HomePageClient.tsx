@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { usePathname } from "next/navigation";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import HeroBanner from "./HeroBanner";
@@ -49,48 +48,64 @@ function heroFromCatalog(videos: PileItVideo[], creators: Creator[]) {
 }
 
 export default function HomePageClient() {
-  const pathname = usePathname();
   const [apiVideos, setApiVideos] = useState<PileItVideo[] | null>(null);
   const [apiCreators, setApiCreators] = useState<Creator[] | null>(null);
   const [catalogFetched, setCatalogFetched] = useState(false);
 
   useEffect(() => {
-    if (pathname !== "/") return;
     const base = getApiBase();
     let cancelled = false;
     void Promise.all([
       fetch(`${base}/videos`)
         .then((r) => (r.ok ? r.json() : Promise.reject()))
         .then((rows: ApiVideoRow[]) => {
-          if (cancelled || !Array.isArray(rows)) return;
-          const mapped = rows.map(mapApiToPileItVideo);
-          if (mapped.length > 0) setApiVideos(mapped);
+          if (cancelled) return;
+          if (!Array.isArray(rows)) {
+            setApiVideos([]);
+            return;
+          }
+          setApiVideos(rows.map(mapApiToPileItVideo));
         })
-        .catch(() => {}),
+        .catch(() => {
+          if (!cancelled) setApiVideos([]);
+        }),
       fetch(`${base}/creators`)
         .then((r) => (r.ok ? r.json() : Promise.reject()))
         .then((rows: ApiCreatorRow[]) => {
-          if (cancelled || !Array.isArray(rows)) return;
-          const mapped = rows.map(mapApiToCreator);
-          if (mapped.length > 0) setApiCreators(mapped);
+          if (cancelled) return;
+          if (!Array.isArray(rows)) {
+            setApiCreators([]);
+            return;
+          }
+          setApiCreators(rows.map(mapApiToCreator));
         })
-        .catch(() => {}),
+        .catch(() => {
+          if (!cancelled) setApiCreators([]);
+        }),
     ]).finally(() => {
       if (!cancelled) setCatalogFetched(true);
     });
     return () => {
       cancelled = true;
     };
-  }, [pathname]);
+  }, []);
 
   const catalog = useMemo(() => {
-    if (apiVideos != null && apiVideos.length > 0) return apiVideos;
+    if (apiVideos !== null) {
+      if (apiVideos.length > 0) return apiVideos;
+      if (allowMockCatalogFallback()) return [...mockVideos].sort(byNewestUpload);
+      return [];
+    }
     if (allowMockCatalogFallback()) return [...mockVideos].sort(byNewestUpload);
     return [];
   }, [apiVideos]);
 
   const featuredCreators = useMemo(() => {
-    if (apiCreators != null && apiCreators.length > 0) return apiCreators;
+    if (apiCreators !== null) {
+      if (apiCreators.length > 0) return apiCreators;
+      if (allowMockCatalogFallback()) return [...mockCreators].sort(byNewestCreatorAccount);
+      return [];
+    }
     if (allowMockCatalogFallback()) return [...mockCreators].sort(byNewestCreatorAccount);
     return [];
   }, [apiCreators]);

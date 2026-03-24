@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import Paper from "@mui/material/Paper";
@@ -17,20 +17,65 @@ import { formatCount, formatDuration, formatRelativeTime } from "@/utils/format"
 import { IMG } from "@/lib/imageUrls";
 import CategoryMediaPlaceholder from "@/components/brand/CategoryMediaPlaceholder";
 import CreatorBadges from "@/components/brand/CreatorBadges";
+import VideoHoverPreview from "./VideoHoverPreview";
+import { useCoarsePointer } from "@/hooks/useCoarsePointer";
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+
+const HOVER_PREVIEW_DEBOUNCE_MS = 280;
 
 type Props = { video: PileItVideo };
 
 /**
  * YouTube-style row card: 16:9 thumbnail + always-visible metadata (no hover popup).
+ * Fine-pointer hover on the thumbnail plays a muted Mux preview after a short delay.
  */
 export default function VideoItemWithHover({ video }: Props) {
   const { openDetail } = useDetailModal();
   const [imgFailed, setImgFailed] = useState(false);
+  const [previewActive, setPreviewActive] = useState(false);
+  const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const coarsePointer = useCoarsePointer();
+  const prefersReducedMotion = usePrefersReducedMotion();
   const src = video.thumbnailUrl;
+  const playbackId = video.playbackId?.trim() ?? "";
+  const canHoverPreview =
+    Boolean(playbackId) &&
+    !video.isLocked &&
+    !coarsePointer &&
+    !prefersReducedMotion;
 
   useEffect(() => {
     setImgFailed(false);
   }, [src]);
+
+  useEffect(() => {
+    return () => {
+      if (previewTimerRef.current != null) {
+        clearTimeout(previewTimerRef.current);
+      }
+    };
+  }, []);
+
+  const clearPreviewTimer = useCallback(() => {
+    if (previewTimerRef.current != null) {
+      clearTimeout(previewTimerRef.current);
+      previewTimerRef.current = null;
+    }
+  }, []);
+
+  const onThumbPointerEnter = useCallback(() => {
+    if (!canHoverPreview) return;
+    clearPreviewTimer();
+    previewTimerRef.current = setTimeout(() => {
+      previewTimerRef.current = null;
+      setPreviewActive(true);
+    }, HOVER_PREVIEW_DEBOUNCE_MS);
+  }, [canHoverPreview, clearPreviewTimer]);
+
+  const onThumbPointerLeave = useCallback(() => {
+    clearPreviewTimer();
+    setPreviewActive(false);
+  }, [clearPreviewTimer]);
 
   const showPlaceholder = !src || imgFailed;
   const watchHref = `/watch/${encodeURIComponent(video.id)}`;
@@ -62,7 +107,10 @@ export default function VideoItemWithHover({ video }: Props) {
             position: "relative",
             pt: "56.25%",
             bgcolor: "#000",
+            isolation: "isolate",
           }}
+          onPointerEnter={onThumbPointerEnter}
+          onPointerLeave={onThumbPointerLeave}
         >
           {showPlaceholder ? (
             <CategoryMediaPlaceholder category={video.category} variant="card" />
@@ -75,14 +123,24 @@ export default function VideoItemWithHover({ video }: Props) {
               sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, (max-width: 1200px) 25vw, 16vw"
               quality={70}
               loading="lazy"
-              style={{ objectFit: "cover" }}
+              style={{
+                objectFit: "cover",
+                opacity: previewActive ? 0 : 1,
+                transition: "opacity 0.2s ease",
+              }}
               onError={() => setImgFailed(true)}
             />
           ) : null}
+          <VideoHoverPreview
+            playbackId={playbackId}
+            accentColor={video.creator.accentColor}
+            active={previewActive}
+          />
           <Box
             sx={{
               position: "absolute",
               inset: 0,
+              zIndex: 2,
               background:
                 "linear-gradient(180deg, transparent 55%, rgba(0,0,0,0.55) 100%)",
               pointerEvents: "none",
@@ -96,6 +154,7 @@ export default function VideoItemWithHover({ video }: Props) {
                 position: "absolute",
                 top: 8,
                 left: 8,
+                zIndex: 3,
                 bgcolor: "primary.main",
                 color: "#fff",
                 fontWeight: 800,
@@ -112,6 +171,7 @@ export default function VideoItemWithHover({ video }: Props) {
                 position: "absolute",
                 top: 8,
                 right: 8,
+                zIndex: 3,
                 bgcolor: "rgba(0,0,0,0.75)",
                 color: "#fff",
                 height: 22,
@@ -125,6 +185,7 @@ export default function VideoItemWithHover({ video }: Props) {
               position: "absolute",
               bottom: 8,
               right: 8,
+              zIndex: 3,
               color: "#fff",
               fontWeight: 700,
               textShadow: "0 1px 4px rgba(0,0,0,0.8)",
