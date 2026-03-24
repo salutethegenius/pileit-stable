@@ -11,7 +11,9 @@ import TextField from "@mui/material/TextField";
 import Stack from "@mui/material/Stack";
 import { useAuth } from "@/providers/AuthProvider";
 import { apiFetch } from "@/lib/api";
+import { resolveMediaUrl } from "@/lib/mediaUrls";
 import CreatorBadges from "@/components/brand/CreatorBadges";
+import type { ApiUserMe } from "@/lib/mapApiUser";
 
 type ApplicationMe = {
   id: string;
@@ -26,12 +28,19 @@ export default function ProfilePage() {
   const [handle, setHandle] = useState("");
   const [bio, setBio] = useState("");
   const [accentColor, setAccentColor] = useState("#f97316");
-  const [avatarUrl, setAvatarUrl] = useState("");
-  const [heroUrl, setHeroUrl] = useState("");
+  const [avatarUrlRaw, setAvatarUrlRaw] = useState<string | null>(null);
+  const [heroUrlRaw, setHeroUrlRaw] = useState<string | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [heroFile, setHeroFile] = useState<File | null>(null);
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
+  const [heroPreviewUrl, setHeroPreviewUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   const isCreator = user?.accountType === "creator";
+  /** Backend allows hero upload for creator and admin; match that here. */
+  const canEditHero =
+    user?.accountType === "creator" || user?.accountType === "admin";
 
   useEffect(() => {
     if (!accessToken || !user || user.accountType !== "viewer") {
@@ -49,10 +58,31 @@ export default function ProfilePage() {
     setHandle(user.handle ?? "");
     setBio(user.bio ?? "");
     setAccentColor(user.accentColor || "#f97316");
-    setAvatarUrl(user.avatarUrl ?? "");
-    setHeroUrl(user.heroImageUrl ?? "");
-    setSaveMsg(null);
+    setAvatarUrlRaw(user.avatarUrlRaw ?? null);
+    setHeroUrlRaw(user.heroImageUrlRaw ?? null);
+    setAvatarFile(null);
+    setHeroFile(null);
   }, [user]);
+
+  useEffect(() => {
+    if (!avatarFile) {
+      setAvatarPreviewUrl(null);
+      return;
+    }
+    const u = URL.createObjectURL(avatarFile);
+    setAvatarPreviewUrl(u);
+    return () => URL.revokeObjectURL(u);
+  }, [avatarFile]);
+
+  useEffect(() => {
+    if (!heroFile) {
+      setHeroPreviewUrl(null);
+      return;
+    }
+    const u = URL.createObjectURL(heroFile);
+    setHeroPreviewUrl(u);
+    return () => URL.revokeObjectURL(u);
+  }, [heroFile]);
 
   const saveProfile = useCallback(async () => {
     if (!accessToken || !user) return;
@@ -65,6 +95,36 @@ export default function ProfilePage() {
       return;
     }
     try {
+      let nextAvatarRaw = avatarUrlRaw;
+      let nextHeroRaw = heroUrlRaw;
+
+      if (avatarFile) {
+        const fd = new FormData();
+        fd.append("file", avatarFile);
+        const updated = await apiFetch<ApiUserMe>("/users/me/avatar", {
+          method: "POST",
+          accessToken,
+          body: fd,
+        });
+        nextAvatarRaw = updated.avatar_url ?? null;
+        setAvatarFile(null);
+      }
+
+      if (canEditHero && heroFile) {
+        const fd = new FormData();
+        fd.append("file", heroFile);
+        const heroRes = await apiFetch<{ hero_image_url: string | null }>(
+          "/creators/me/hero-image",
+          {
+            method: "POST",
+            accessToken,
+            body: fd,
+          }
+        );
+        nextHeroRaw = heroRes.hero_image_url ?? null;
+        setHeroFile(null);
+      }
+
       await apiFetch("/users/me", {
         method: "PUT",
         accessToken,
@@ -73,15 +133,15 @@ export default function ProfilePage() {
           handle: handle.trim() || null,
           bio: bio.trim() || null,
           accent_color: accentColor.trim() || undefined,
-          avatar_url: avatarUrl.trim() || null,
+          avatar_url: nextAvatarRaw,
         }),
       });
-      if (isCreator) {
+      if (canEditHero) {
         await apiFetch("/creators/me", {
           method: "PUT",
           accessToken,
           body: JSON.stringify({
-            hero_image_url: heroUrl.trim() || null,
+            hero_image_url: nextHeroRaw,
           }),
         });
       }
@@ -102,9 +162,12 @@ export default function ProfilePage() {
     handle,
     bio,
     accentColor,
-    avatarUrl,
-    heroUrl,
+    avatarUrlRaw,
+    heroUrlRaw,
+    avatarFile,
+    heroFile,
     isCreator,
+    canEditHero,
     refreshUser,
   ]);
 
@@ -119,6 +182,11 @@ export default function ProfilePage() {
       </Box>
     );
   }
+
+  const avatarDisplaySrc =
+    avatarPreviewUrl ?? (avatarUrlRaw ? resolveMediaUrl(avatarUrlRaw) : "");
+  const heroDisplaySrc =
+    heroPreviewUrl ?? (heroUrlRaw ? resolveMediaUrl(heroUrlRaw) : "");
 
   return (
     <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 560 }}>
@@ -188,24 +256,125 @@ export default function ProfilePage() {
             size="small"
             helperText="Hex color, e.g. #f97316"
           />
-          <TextField
-            label="Profile photo URL"
-            value={avatarUrl}
-            onChange={(e) => setAvatarUrl(e.target.value)}
-            fullWidth
-            size="small"
-            helperText="HTTPS image URL (e.g. Unsplash or your CDN). Leave empty for placeholder."
-          />
-          {isCreator && (
-            <TextField
-              label="Channel hero / cover image URL"
-              value={heroUrl}
-              onChange={(e) => setHeroUrl(e.target.value)}
-              fullWidth
-              size="small"
-              helperText="Wide HTTPS image shown at the top of your channel. Leave empty to use gradient only."
-            />
+
+          <Box>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              Profile photo
+            </Typography>
+            <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
+              <Box
+                sx={{
+                  width: 72,
+                  height: 72,
+                  borderRadius: "50%",
+                  overflow: "hidden",
+                  bgcolor: "#333",
+                  border: "2px solid #444",
+                  flexShrink: 0,
+                }}
+              >
+                {avatarDisplaySrc ? (
+                  <Box
+                    component="img"
+                    src={avatarDisplaySrc}
+                    alt=""
+                    sx={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                  />
+                ) : null}
+              </Box>
+              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                <Button component="label" variant="outlined" size="small" sx={{ textTransform: "none" }}>
+                  Upload
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    hidden
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      setAvatarFile(f ?? null);
+                      e.target.value = "";
+                    }}
+                  />
+                </Button>
+                <Button
+                  variant="text"
+                  size="small"
+                  disabled={!avatarUrlRaw && !avatarFile}
+                  onClick={() => {
+                    setAvatarFile(null);
+                    setAvatarUrlRaw(null);
+                  }}
+                  sx={{ textTransform: "none" }}
+                >
+                  Remove
+                </Button>
+              </Stack>
+            </Stack>
+            <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
+              JPEG, PNG, or WebP — max 5MB.
+            </Typography>
+          </Box>
+
+          {canEditHero && (
+            <Box>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                Channel cover (hero image)
+              </Typography>
+              <Stack spacing={1}>
+                <Box
+                  sx={{
+                    width: "100%",
+                    maxWidth: 400,
+                    aspectRatio: "16 / 9",
+                    borderRadius: 1,
+                    overflow: "hidden",
+                    bgcolor: "#333",
+                    border: "1px solid #444",
+                  }}
+                >
+                  {heroDisplaySrc ? (
+                    <Box
+                      component="img"
+                      src={heroDisplaySrc}
+                      alt=""
+                      sx={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                    />
+                  ) : null}
+                </Box>
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  <Button component="label" variant="outlined" size="small" sx={{ textTransform: "none" }}>
+                    Upload cover
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      hidden
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        setHeroFile(f ?? null);
+                        e.target.value = "";
+                      }}
+                    />
+                  </Button>
+                  <Button
+                    variant="text"
+                    size="small"
+                    disabled={!heroUrlRaw && !heroFile}
+                    onClick={() => {
+                      setHeroFile(null);
+                      setHeroUrlRaw(null);
+                    }}
+                    sx={{ textTransform: "none" }}
+                  >
+                    Remove
+                  </Button>
+                </Stack>
+                <Typography variant="caption" color="text.secondary">
+                  Wide image for the top of your channel. JPEG, PNG, or WebP — max 5MB.
+                </Typography>
+              </Stack>
+            </Box>
           )}
+
           <Button
             variant="contained"
             disabled={saving}

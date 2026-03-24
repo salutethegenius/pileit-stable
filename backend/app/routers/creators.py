@@ -14,6 +14,7 @@ from app.database import get_db
 from app import models
 from app.deps import get_current_user
 from app.monetization import subscriber_count_for_creator
+from app.profile_media import delete_stored_media, save_profile_image
 
 router = APIRouter(prefix="/creators", tags=["creators"])
 
@@ -316,6 +317,27 @@ class CreatorMeUpdate(BaseModel):
         return v.strip() if isinstance(v, str) else v
 
 
+@router.post("/me/hero-image")
+async def upload_my_hero_image(
+    user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    file: UploadFile = File(...),
+):
+    if user.account_type not in ("creator", "admin"):
+        raise HTTPException(403, "Creators only")
+    prof = user.creator_profile
+    if not prof:
+        raise HTTPException(400, "No creator profile")
+    old = prof.hero_image_url
+    rel = save_profile_image(user.id, file, "hero")
+    if old and old.startswith("media/") and old != rel:
+        delete_stored_media(old)
+    prof.hero_image_url = rel
+    db.commit()
+    db.refresh(prof)
+    return {"hero_image_url": prof.hero_image_url}
+
+
 @router.put("/me")
 def update_creator_me(
     body: CreatorMeUpdate,
@@ -327,8 +349,13 @@ def update_creator_me(
     prof = user.creator_profile
     if not prof:
         raise HTTPException(400, "No creator profile")
-    if body.hero_image_url is not None:
-        prof.hero_image_url = body.hero_image_url
+    patch = body.model_dump(exclude_unset=True)
+    if "hero_image_url" in patch:
+        old = prof.hero_image_url
+        new = patch["hero_image_url"]
+        if old and old.startswith("media/") and new != old:
+            delete_stored_media(old)
+        prof.hero_image_url = new
     db.commit()
     db.refresh(prof)
     return {"hero_image_url": prof.hero_image_url}

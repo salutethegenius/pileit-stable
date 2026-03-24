@@ -65,7 +65,10 @@ export interface UserMe {
   email: string;
   displayName: string;
   handle: string | null;
+  /** Absolute URL for <img src> */
   avatarUrl: string | null;
+  /** Value from API (e.g. media/… or https://…) for PUT /users/me */
+  avatarUrlRaw: string | null;
   accountType: AccountType;
   accentColor: string;
   bio: string | null;
@@ -73,6 +76,8 @@ export interface UserMe {
   payoutStatus?: string | null;
   /** Creator profile: admin-verified (blue badge), independent of monetization */
   verified?: boolean | null;
-  /** Creator channel hero image URL */
+  /** Creator channel hero — absolute URL for display */
   heroImageUrl?: string | null;
+  /** Raw hero URL for PUT /creators/me */
+  heroImageUrlRaw?: string | null;
 }

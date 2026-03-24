@@ -1,5 +1,6 @@
 import type { PileItVideo } from "@/types/content";
 import { IMG } from "@/lib/imageUrls";
+import { resolveMediaUrl } from "@/lib/mediaUrls";
 
 /** Backend GET /videos row shape */
 export type ApiVideoRow = {
@@ -82,7 +83,7 @@ function mapApiVideoToPileItVideoInternal(
       verified: row.creator.verified,
       accentColor: row.creator.accent_color,
       avatarUrl: row.creator.avatar_url
-        ? IMG.avatar(row.creator.avatar_url)
+        ? IMG.avatar(resolveMediaUrl(row.creator.avatar_url))
         : "",
       subscriberCount: row.creator.subscriber_count,
       subscriptionPrice:

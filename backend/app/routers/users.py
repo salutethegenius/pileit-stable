@@ -1,12 +1,13 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app import models
 from app.deps import get_current_user
+from app.profile_media import delete_stored_media, save_profile_image
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -76,28 +77,51 @@ def me(user: Annotated[models.User, Depends(get_current_user)]):
     return _user_me_out(user)
 
 
+@router.post("/me/avatar", response_model=UserMeOut)
+async def upload_my_avatar(
+    user: Annotated[models.User, Depends(get_current_user)],
+    db: Session = Depends(get_db),
+    file: UploadFile = File(...),
+):
+    old = user.avatar_url
+    rel = save_profile_image(user.id, file, "avatar")
+    if old and old.startswith("media/") and old != rel:
+        delete_stored_media(old)
+    user.avatar_url = rel
+    db.commit()
+    db.refresh(user)
+    return _user_me_out(user)
+
+
 @router.put("/me", response_model=UserMeOut)
 def update_me(
     body: UserUpdate,
     user: Annotated[models.User, Depends(get_current_user)],
     db: Session = Depends(get_db),
 ):
-    if body.display_name is not None:
-        user.display_name = body.display_name
-    if body.handle is not None:
-        if (
-            db.query(models.User)
-            .filter(models.User.handle == body.handle, models.User.id != user.id)
-            .first()
-        ):
-            raise HTTPException(400, "Handle taken")
-        user.handle = body.handle
-    if body.bio is not None:
-        user.bio = body.bio
-    if body.accent_color is not None:
-        user.accent_color = body.accent_color
-    if body.avatar_url is not None:
-        user.avatar_url = body.avatar_url
+    patch = body.model_dump(exclude_unset=True)
+    if "display_name" in patch and patch["display_name"] is not None:
+        user.display_name = patch["display_name"]
+    if "handle" in patch:
+        h = patch["handle"]
+        if h is not None:
+            if (
+                db.query(models.User)
+                .filter(models.User.handle == h, models.User.id != user.id)
+                .first()
+            ):
+                raise HTTPException(400, "Handle taken")
+        user.handle = h
+    if "bio" in patch:
+        user.bio = patch["bio"]
+    if "accent_color" in patch and patch["accent_color"] is not None:
+        user.accent_color = patch["accent_color"]
+    if "avatar_url" in patch:
+        old = user.avatar_url
+        new = patch["avatar_url"]
+        if old and old.startswith("media/") and new != old:
+            delete_stored_media(old)
+        user.avatar_url = new
     db.commit()
     db.refresh(user)
     return _user_me_out(user)

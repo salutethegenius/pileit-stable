@@ -1,5 +1,6 @@
 import type { Creator } from "@/types/content";
 import { IMG } from "@/lib/imageUrls";
+import { resolveMediaUrl } from "@/lib/mediaUrls";
 
 /** GET /creators row (list or compatible detail) */
 export type ApiCreatorRow = {
@@ -24,8 +25,8 @@ export type ApiCreatorRow = {
 };
 
 export function mapApiToCreator(row: ApiCreatorRow): Creator {
-  const avatar = row.avatar_url || "";
-  const heroRaw = row.hero_image_url || "";
+  const avatar = row.avatar_url ? resolveMediaUrl(row.avatar_url) : "";
+  const heroRaw = row.hero_image_url ? resolveMediaUrl(row.hero_image_url) : "";
   return {
     id: row.id,
     handle: row.handle,

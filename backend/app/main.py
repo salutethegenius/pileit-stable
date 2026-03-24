@@ -23,6 +23,7 @@ from app.routers import (
     kemispay,
     meta_webhook,
     pile,
+    public_files,
     reports,
     store,
     subscriptions,
@@ -95,6 +96,7 @@ app.add_middleware(
 )
 
 for r in (
+    public_files,
     auth,
     users,
     videos,
