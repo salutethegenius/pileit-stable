@@ -2,11 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
 import HeroBanner from "./HeroBanner";
 import CreatorRow from "./CreatorRow";
 import ContentRow from "./ContentRow";
 import { mockCreators, mockVideos } from "@/data/mock";
 import { getApiBase } from "@/lib/api";
+import { allowMockCatalogFallback } from "@/lib/mockCatalog";
 import { mapApiToPileItVideo, type ApiVideoRow } from "@/lib/mapApiVideo";
 import { mapApiToCreator, type ApiCreatorRow } from "@/lib/mapApiCreator";
 import type { Creator, PileItVideo } from "@/types/content";
@@ -48,26 +50,34 @@ function heroFromCatalog(videos: PileItVideo[], creators: Creator[]) {
 export default function HomePageClient() {
   const [apiVideos, setApiVideos] = useState<PileItVideo[] | null>(null);
   const [apiCreators, setApiCreators] = useState<Creator[] | null>(null);
+  const [catalogFetched, setCatalogFetched] = useState(false);
 
   useEffect(() => {
     const base = getApiBase();
-    fetch(`${base}/videos`)
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((rows: ApiVideoRow[]) => {
-        if (!Array.isArray(rows)) return;
-        const mapped = rows.map(mapApiToPileItVideo);
-        // Only replace mocks when API returns real rows ([] must NOT win over mocks — ?? is not enough if state were []).
-        if (mapped.length > 0) setApiVideos(mapped);
-      })
-      .catch(() => {});
-    fetch(`${base}/creators`)
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((rows: ApiCreatorRow[]) => {
-        if (!Array.isArray(rows)) return;
-        const mapped = rows.map(mapApiToCreator);
-        if (mapped.length > 0) setApiCreators(mapped);
-      })
-      .catch(() => {});
+    let cancelled = false;
+    void Promise.all([
+      fetch(`${base}/videos`)
+        .then((r) => (r.ok ? r.json() : Promise.reject()))
+        .then((rows: ApiVideoRow[]) => {
+          if (cancelled || !Array.isArray(rows)) return;
+          const mapped = rows.map(mapApiToPileItVideo);
+          if (mapped.length > 0) setApiVideos(mapped);
+        })
+        .catch(() => {}),
+      fetch(`${base}/creators`)
+        .then((r) => (r.ok ? r.json() : Promise.reject()))
+        .then((rows: ApiCreatorRow[]) => {
+          if (cancelled || !Array.isArray(rows)) return;
+          const mapped = rows.map(mapApiToCreator);
+          if (mapped.length > 0) setApiCreators(mapped);
+        })
+        .catch(() => {}),
+    ]).finally(() => {
+      if (!cancelled) setCatalogFetched(true);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   /**
@@ -77,12 +87,14 @@ export default function HomePageClient() {
    */
   const catalog = useMemo(() => {
     if (apiVideos != null && apiVideos.length > 0) return apiVideos;
-    return [...mockVideos].sort(byNewestUpload);
+    if (allowMockCatalogFallback()) return [...mockVideos].sort(byNewestUpload);
+    return [];
   }, [apiVideos]);
 
   const featuredCreators = useMemo(() => {
     if (apiCreators != null && apiCreators.length > 0) return apiCreators;
-    return [...mockCreators].sort(byNewestCreatorAccount);
+    if (allowMockCatalogFallback()) return [...mockCreators].sort(byNewestCreatorAccount);
+    return [];
   }, [apiCreators]);
 
   const inCategory = (cat: string) =>
@@ -106,9 +118,25 @@ export default function HomePageClient() {
     [catalog]
   );
 
+  const showEmptyProd =
+    catalogFetched &&
+    !allowMockCatalogFallback() &&
+    catalog.length === 0 &&
+    featuredCreators.length === 0;
+
   return (
     <Box sx={{ bgcolor: "background.default", minHeight: "100vh" }}>
       <HeroBanner slides={heroSlides} />
+      {showEmptyProd ? (
+        <Box sx={{ maxWidth: 640, mx: "auto", px: 3, py: 6, textAlign: "center" }}>
+          <Typography variant="h6" fontWeight={700} gutterBottom>
+            New creators and videos are on the way
+          </Typography>
+          <Typography color="text.secondary">
+            The catalog is empty for now. Check back soon or browse from the menu when content is live.
+          </Typography>
+        </Box>
+      ) : null}
       <Box sx={{ maxWidth: 1440, mx: "auto", width: "100%", px: { xs: 2, md: 3, xl: 4 }, pt: 2 }}>
         <CreatorRow title="Featured Creators" creators={featuredCreators} />
         <Box id="trending" sx={{ scrollMarginTop: 88 }}>

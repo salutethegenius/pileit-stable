@@ -4,6 +4,7 @@ import WatchPageClient from "@/components/watch/WatchPageClient";
 import JsonLd from "@/components/seo/JsonLd";
 import { fetchVideoById } from "@/lib/serverCatalog";
 import { getVideoById } from "@/data/mock";
+import { allowMockCatalogFallback } from "@/lib/mockCatalog";
 import {
   pickHttpsImageForOg,
   truncateMetaDescription,
@@ -15,7 +16,8 @@ type Props = { params: { videoId: string } };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const video =
-    (await fetchVideoById(params.videoId)) ?? getVideoById(params.videoId);
+    (await fetchVideoById(params.videoId)) ??
+    (allowMockCatalogFallback() ? getVideoById(params.videoId) : null);
   if (!video) {
     return {
       title: "Video not found",
@@ -63,7 +65,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function WatchPage({ params }: Props) {
   const video =
-    (await fetchVideoById(params.videoId)) ?? getVideoById(params.videoId);
+    (await fetchVideoById(params.videoId)) ??
+    (allowMockCatalogFallback() ? getVideoById(params.videoId) : null);
   if (!video) notFound();
   const site = getSiteUrl();
   const videoPageUrl = `${site}/watch/${encodeURIComponent(video.id)}`;

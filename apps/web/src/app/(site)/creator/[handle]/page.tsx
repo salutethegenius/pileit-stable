@@ -8,6 +8,7 @@ import {
   getCreatorByHandle,
   getVideosByCreatorHandle,
 } from "@/data/mock";
+import { allowMockCatalogFallback } from "@/lib/mockCatalog";
 import {
   pickHttpsImage,
   truncateMetaDescription,
@@ -19,7 +20,9 @@ type Props = { params: { handle: string } };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const fromApi = await fetchCreatorChannel(params.handle);
-  const creator = fromApi?.creator ?? getCreatorByHandle(params.handle);
+  const creator =
+    fromApi?.creator ??
+    (allowMockCatalogFallback() ? getCreatorByHandle(params.handle) : null);
   if (!creator) {
     return {
       title: "Creator not found",
@@ -94,6 +97,7 @@ export default async function CreatorPage({
       </Suspense>
     );
   }
+  if (!allowMockCatalogFallback()) notFound();
   const creator = getCreatorByHandle(params.handle);
   if (!creator) notFound();
   const videos = getVideosByCreatorHandle(params.handle);
