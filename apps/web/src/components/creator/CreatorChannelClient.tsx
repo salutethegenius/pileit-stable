@@ -297,12 +297,7 @@ export default function CreatorChannelClient({ creator, videos }: Props) {
             <Grid container spacing={2}>
               {filtered.map((v) => (
                 <Grid item xs={12} sm={6} md={4} key={v.id}>
-                  <Box
-                    onClick={() => router.push(`/watch/${v.id}`)}
-                    sx={{ cursor: "pointer" }}
-                  >
-                    <VideoItemWithHover video={v} />
-                  </Box>
+                  <VideoItemWithHover video={v} />
                 </Grid>
               ))}
             </Grid>

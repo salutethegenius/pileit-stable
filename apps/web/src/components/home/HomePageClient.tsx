@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { usePathname } from "next/navigation";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import HeroBanner from "./HeroBanner";
@@ -48,11 +49,13 @@ function heroFromCatalog(videos: PileItVideo[], creators: Creator[]) {
 }
 
 export default function HomePageClient() {
+  const pathname = usePathname();
   const [apiVideos, setApiVideos] = useState<PileItVideo[] | null>(null);
   const [apiCreators, setApiCreators] = useState<Creator[] | null>(null);
   const [catalogFetched, setCatalogFetched] = useState(false);
 
   useEffect(() => {
+    if (pathname !== "/") return;
     const base = getApiBase();
     let cancelled = false;
     void Promise.all([
@@ -78,13 +81,8 @@ export default function HomePageClient() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [pathname]);
 
-  /**
-   * Prefer API list only when it has items; empty API / errors keep Bahamian mocks.
-   * API returns newest creator accounts first (videos ordered by creator signup, then upload time).
-   * Mocks are sorted the same way client-side for consistent hero + featured rows.
-   */
   const catalog = useMemo(() => {
     if (apiVideos != null && apiVideos.length > 0) return apiVideos;
     if (allowMockCatalogFallback()) return [...mockVideos].sort(byNewestUpload);

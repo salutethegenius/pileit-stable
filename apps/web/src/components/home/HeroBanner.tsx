@@ -14,7 +14,7 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import type { Creator, PileItVideo } from "@/types/content";
 import { useDetailModal } from "@/providers/DetailModalProvider";
-import { formatCount } from "@/utils/format";
+import { formatCreatorAudienceLine } from "@/utils/format";
 import { categoryHeroChipBg } from "@/utils/categoryStyles";
 import { IMG } from "@/lib/imageUrls";
 import { useCoarsePointer } from "@/hooks/useCoarsePointer";
@@ -319,7 +319,7 @@ export default function HeroBanner({
                   />
                 </Stack>
                 <Typography variant="caption" color="text.secondary">
-                  {formatCount(creator.subscriberCount)} subscribers
+                  {formatCreatorAudienceLine(creator)}
                 </Typography>
               </Box>
             </Stack>
@@ -412,7 +412,7 @@ export default function HeroBanner({
                   />
                 </Stack>
                 <Typography variant="caption" color="text.secondary">
-                  {formatCount(video!.creator.subscriberCount)} subscribers
+                  {formatCreatorAudienceLine(video!.creator)}
                 </Typography>
               </Box>
             </Stack>

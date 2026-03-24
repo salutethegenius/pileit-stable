@@ -14,7 +14,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import CreatorBadges from "@/components/brand/CreatorBadges";
 import { useDetailModal } from "@/providers/DetailModalProvider";
-import { formatCount, formatDuration } from "@/utils/format";
+import { formatCount, formatCreatorAudienceLine, formatDuration } from "@/utils/format";
 import ContentRow from "./ContentRow";
 import { getVideosByCreatorHandle } from "@/data/mock";
 import { getApiBase } from "@/lib/api";
@@ -161,7 +161,7 @@ export default function DetailModal() {
               />
             </Stack>
             <Typography variant="body2" color="text.secondary">
-              {formatCount(detailVideo.creator.subscriberCount)} subscribers
+              {formatCreatorAudienceLine(detailVideo.creator)}
             </Typography>
           </Box>
           <Button variant="outlined" size="small" sx={{ textTransform: "none" }}>

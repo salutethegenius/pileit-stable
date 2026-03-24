@@ -9,7 +9,7 @@ import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
 import type { Creator } from "@/types/content";
 import CreatorBadges from "@/components/brand/CreatorBadges";
-import { formatCount } from "@/utils/format";
+import { formatCreatorAudienceLine } from "@/utils/format";
 import { IMG } from "@/lib/imageUrls";
 import CategoryMediaPlaceholder from "@/components/brand/CategoryMediaPlaceholder";
 
@@ -98,7 +98,7 @@ export default function CreatorCard({ creator }: { creator: Creator }) {
             sx={{ mt: 1, height: 22 }}
           />
           <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
-            {formatCount(creator.subscriberCount)} subscribers
+            {formatCreatorAudienceLine(creator)}
           </Typography>
         </Box>
       </Stack>

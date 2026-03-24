@@ -55,6 +55,7 @@ export interface PileItVideo {
     | "accentColor"
     | "avatarUrl"
     | "subscriberCount"
+    | "followerCount"
   > & {
       subscriptionPrice?: number;
       monetizationEligible?: boolean;

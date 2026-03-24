@@ -26,6 +26,7 @@ export type ApiVideoRow = {
     accent_color: string;
     avatar_url: string;
     subscriber_count: number;
+    follower_count?: number;
     subscription_price?: number | null;
     monetization_eligible?: boolean;
   };
@@ -94,6 +95,7 @@ function mapApiVideoToPileItVideoInternal(
         ? IMG.avatar(resolveMediaUrl(row.creator.avatar_url))
         : "",
       subscriberCount: row.creator.subscriber_count,
+      followerCount: row.creator.follower_count ?? 0,
       subscriptionPrice:
         row.creator.monetization_eligible === false
           ? undefined

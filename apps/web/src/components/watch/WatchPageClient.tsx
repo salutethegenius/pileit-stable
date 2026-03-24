@@ -19,7 +19,7 @@ import ReportContentDialog from "./ReportContentDialog";
 import TipModal from "./TipModal";
 import SubscribeModal from "./SubscribeModal";
 import { useSubscriptionCheck } from "@/hooks/useSubscriptionCheck";
-import { formatCount } from "@/utils/format";
+import { formatCount, formatCreatorAudienceLine } from "@/utils/format";
 import type { PileItVideo } from "@/types/content";
 import { IMG } from "@/lib/imageUrls";
 import { getApiBase } from "@/lib/api";
@@ -139,7 +139,7 @@ export default function WatchPageClient({ video }: Props) {
           <Box>
             <Typography fontWeight={700}>{video.creator.displayName}</Typography>
             <Typography variant="caption" color="text.secondary">
-              {formatCount(video.creator.subscriberCount)} subscribers
+              {formatCreatorAudienceLine(video.creator)}
             </Typography>
           </Box>
           <Button

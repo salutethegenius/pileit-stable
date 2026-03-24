@@ -203,6 +203,7 @@ function makeVideo(
       accentColor: c.accentColor,
       avatarUrl: c.avatarUrl,
       subscriberCount: c.subscriberCount,
+      followerCount: c.followerCount ?? 0,
       subscriptionPrice: c.subscriptionPrice,
       monetizationEligible: c.monetizationEligible === true,
     },

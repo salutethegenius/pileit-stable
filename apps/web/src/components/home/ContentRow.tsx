@@ -94,10 +94,10 @@ export default function ContentRow({ title, seeAllHref, videos }: Props) {
           </IconButton>
         </Stack>
       </Stack>
-      <Box sx={{ position: "relative", overflow: "visible" }}>
+      <Box sx={{ position: "relative", overflow: "hidden" }}>
         <Slider ref={sliderRef} {...settings}>
           {videos.map((v) => (
-            <Box key={v.id} sx={{ px: 1 }}>
+            <Box key={v.id} sx={{ px: 1, pb: 0.5 }}>
               <VideoItemWithHover video={v} />
             </Box>
           ))}
