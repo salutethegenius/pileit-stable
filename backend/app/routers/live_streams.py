@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app import models
 from app.deps import require_creator
+from app.security import create_live_browser_ingest_token
 from app.mux_client import (
     MUX_LIVE_RTMP_URL,
     mux_create_live_stream,
@@ -196,6 +197,32 @@ def sync_live_stream_status(
         "video_id": v.id,
         "mux_live_status": v.mux_live_status,
         "playback_id": v.playback_id,
+    }
+
+
+@router.post("/{video_id}/browser-ingest-token")
+def issue_browser_ingest_token(
+    video_id: str,
+    user: Annotated[models.User, Depends(require_creator)],
+    db: Session = Depends(get_db),
+):
+    """
+    Mint a short-lived JWT for the WebRTC/LiveKit gateway. Does not expose Mux stream key.
+    """
+    v = db.get(models.Video, video_id)
+    if not v or v.creator_id != user.id:
+        raise HTTPException(status_code=404, detail="Not found")
+    if v.stream_source != "mux_live" or not v.mux_live_stream_id:
+        raise HTTPException(status_code=400, detail="Not a Mux live video")
+    if (v.mux_live_status or "") not in ("idle", "active"):
+        raise HTTPException(
+            status_code=400,
+            detail="Create a live stream first; browser ingest requires an idle or active Mux session.",
+        )
+    token = create_live_browser_ingest_token(video_id=v.id, user_id=user.id)
+    return {
+        "ingest_token": token,
+        "video_id": v.id,
     }
 
 

@@ -15,6 +15,15 @@ MUX_API_BASE = "https://api.mux.com/video/v1"
 # RTMPS ingest (OBS / FFmpeg). Stream key is returned on create; append as the stream key field in software.
 MUX_LIVE_RTMP_URL = "rtmps://global-live.mux.com:443/app"
 
+
+def mux_rtmp_push_url(stream_key: str) -> str:
+    """Single RTMP(S) URL for encoders / LiveKit egress (path includes stream key)."""
+    key = (stream_key or "").strip()
+    if not key:
+        return ""
+    base = MUX_LIVE_RTMP_URL.rstrip("/")
+    return f"{base}/{key}"
+
 # End-user-safe API messages (no provider env names or internal URLs in JSON detail).
 _MSG_UPLOAD_UNAVAILABLE = "Upload isn’t available right now. Please try again later."
 _MSG_UPLOAD_FAILED = "Upload couldn’t be completed. Please try again."

@@ -78,3 +78,36 @@ def decode_claim_channel_token(token: str) -> dict[str, Any]:
     if data.get("type") != "claim_channel":
         raise JWTError("not a claim token")
     return data
+
+
+def _live_browser_ingest_secret() -> str:
+    s = (settings.live_browser_ingest_secret or "").strip()
+    if s:
+        return s
+    return settings.jwt_secret
+
+
+def create_live_browser_ingest_token(*, video_id: str, user_id: str) -> str:
+    """Short-lived JWT for the WebRTC gateway (never includes Mux stream key)."""
+    exp = datetime.now(timezone.utc) + timedelta(hours=1)
+    return jwt.encode(
+        {
+            "sub": user_id,
+            "video_id": video_id,
+            "exp": exp,
+            "type": "live_browser_ingest",
+        },
+        _live_browser_ingest_secret(),
+        algorithm=settings.jwt_algorithm,
+    )
+
+
+def decode_live_browser_ingest_token(token: str) -> dict[str, Any]:
+    data = jwt.decode(
+        token,
+        _live_browser_ingest_secret(),
+        algorithms=[settings.jwt_algorithm],
+    )
+    if data.get("type") != "live_browser_ingest":
+        raise JWTError("not a live browser ingest token")
+    return data

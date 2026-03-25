@@ -1,3 +1,5 @@
+import logging
+import os
 import uuid
 from decimal import Decimal
 
@@ -6,7 +8,14 @@ from sqlalchemy.orm import Session
 from app import models
 from app.security import hash_password
 
+logger = logging.getLogger(__name__)
+
 CLAIM_DEMO_HANDLE = "pileitunclaimed"
+
+# Local/dev demo admin (README). Restored on startup for SQLite when not running on Railway.
+DEMO_ADMIN_EMAIL = "admin@pileit.bs"
+DEMO_ADMIN_PASSWORD = "admin123"
+DEMO_ADMIN_HANDLE = "pileitadmin"
 
 DEMO_MP4 = "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
 
@@ -33,10 +42,10 @@ def seed_if_empty(db: Session) -> None:
 
     admin = models.User(
         id="admin-1",
-        email="admin@pileit.bs",
-        password_hash=hash_password("admin123"),
+        email=DEMO_ADMIN_EMAIL,
+        password_hash=hash_password(DEMO_ADMIN_PASSWORD),
         display_name="Platform Admin",
-        handle="pileitadmin",
+        handle=DEMO_ADMIN_HANDLE,
         account_type="admin",
     )
     db.add(admin)
@@ -457,6 +466,60 @@ def ensure_extra_demo_videos(db: Session) -> None:
         added = True
     if added:
         db.commit()
+
+
+def ensure_local_demo_admin(db: Session, *, database_url: str) -> None:
+    """
+    Idempotently ensure the README demo admin exists with a known password on local SQLite.
+
+    Skips on Railway (production) and on non-SQLite databases unless you need this elsewhere.
+    """
+    if (os.getenv("RAILWAY_ENVIRONMENT") or "").strip():
+        return
+    url = (database_url or "").strip().lower()
+    if not url.startswith("sqlite:"):
+        return
+
+    u = db.query(models.User).filter(models.User.email == DEMO_ADMIN_EMAIL).first()
+    if u:
+        u.account_type = "admin"
+        u.password_hash = hash_password(DEMO_ADMIN_PASSWORD)
+        u.display_name = "Platform Admin"
+        db.add(u)
+        db.commit()
+        logger.info(
+            "Local SQLite: demo admin %s password reset to README default",
+            DEMO_ADMIN_EMAIL,
+        )
+        return
+
+    uid = "admin-1"
+    if db.get(models.User, uid) is not None:
+        uid = str(uuid.uuid4())
+
+    handle = DEMO_ADMIN_HANDLE
+    if (
+        db.query(models.User)
+        .filter(models.User.handle == DEMO_ADMIN_HANDLE)
+        .first()
+    ):
+        handle = None
+
+    db.add(
+        models.User(
+            id=uid,
+            email=DEMO_ADMIN_EMAIL,
+            password_hash=hash_password(DEMO_ADMIN_PASSWORD),
+            display_name="Platform Admin",
+            handle=handle,
+            account_type="admin",
+        )
+    )
+    db.commit()
+    logger.info(
+        "Local SQLite: ensured demo admin at %s (password reset to README default)",
+        DEMO_ADMIN_EMAIL,
+    )
 
 
 def ensure_claim_demo_stub(db: Session) -> None:

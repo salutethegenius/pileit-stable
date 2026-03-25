@@ -48,6 +48,10 @@ class Settings(BaseSettings):
     mux_token_secret: str = ""
     # Mux webhook signing secret (Dashboard → Webhooks). Optional; verification skipped if empty.
     mux_webhook_secret: str = ""
+    # WebRTC browser live → LiveKit egress → Mux: shared secret for services/webrtc-rtmp-gateway → API.
+    live_gateway_shared_secret: str = ""
+    # HS256 secret for short-lived JWTs (browser → gateway only). If empty, falls back to jwt_secret (dev only).
+    live_browser_ingest_secret: str = ""
     # Optional S3-compatible bucket (e.g. Railway Buckets — private; serve via GET /public-files/…).
     # Wire Railway variable references: BUCKET, ENDPOINT, REGION, ACCESS_KEY_ID, SECRET_ACCESS_KEY.
     s3_bucket: str = Field(
