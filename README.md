@@ -6,6 +6,7 @@ Bahamian-first streaming and creator economy platform: Netflix-style browse, cre
 
 - **`apps/web`** — Next.js 14 (App Router), MUI v5, Framer Motion, react-slick, Video.js
 - **`backend`** — FastAPI, SQLAlchemy, JWT auth, SQLite by default (set `DATABASE_URL` for PostgreSQL). **Money is BSD** (Bahamian dollars) everywhere tips, subs, and shop amounts are shown or accepted.
+- **`services/webrtc-rtmp-gateway`** — Node service: browser → LiveKit → RTMP → Mux (see [`docs/staging-readiness.md`](docs/staging-readiness.md)).
 - **`pileit-brand-01.jsx`** — brand lab reference (production components live under `apps/web/src/components/brand/`)
 
 ## Quick start
@@ -68,9 +69,22 @@ Set `NEXT_PUBLIC_API_URL=http://127.0.0.1:8000` when the API listens on port 800
    - **`CORS_ORIGINS`** — comma-separated origins that may call the API, e.g. `https://your-app.vercel.app,https://yourdomain.com`.
    - **`PUBLIC_WEB_URL`** — public site URL (no trailing slash), e.g. `https://your-app.vercel.app`.
    - **`API_PUBLIC_URL`** — public API URL (no trailing slash), e.g. `https://your-api.up.railway.app`.
+   - **`MUX_TOKEN_ID`** / **`MUX_TOKEN_SECRET`** — Mux Video; **`MUX_WEBHOOK_SECRET`** for signed webhooks.
+   - **`LIVE_GATEWAY_SHARED_SECRET`** / **`LIVE_BROWSER_INGEST_SECRET`** — same values on the **`webrtc-rtmp-gateway`** Railway service (browser live).
    - Copy the rest from **`backend/.env.example`** (KemisPay, Meta, etc.) as you enable those integrations.
 
 The API exposes **`GET /health`** for Railway’s health check. Tables are created on boot via SQLAlchemy; use a strong Postgres password and restrict access to the DB service.
+
+**Mux webhooks:** In the Mux dashboard, point the webhook URL to **`https://<your-api-host>/mux/webhook`** (never localhost in production).
+
+### Railway (browser live gateway)
+
+1. Add another **service** from the repo; set **Root Directory** to **`services/webrtc-rtmp-gateway`**.
+2. Use the **`Dockerfile`** in that folder (or Nixpacks with `npm start` / `node src/server.js`).
+3. Set variables from **`services/webrtc-rtmp-gateway/.env.example`**. **`PILEIT_API_URL`** must be your public Railway API base. Assign a **public domain** for the gateway.
+4. On Vercel, set **`NEXT_PUBLIC_PILEIT_LIVE_GATEWAY_URL`** to that gateway URL (no trailing slash).
+
+Full tables + 12-step mobile E2E: **[`docs/staging-readiness.md`](docs/staging-readiness.md)** and **[`docs/staging-browser-live-e2e.md`](docs/staging-browser-live-e2e.md)**.
 
 ### Vercel (Next.js)
 
@@ -80,6 +94,7 @@ The API exposes **`GET /health`** for Railway’s health check. Tables are creat
 4. Add **`NEXT_PUBLIC_API_URL`** = your Railway API base URL (e.g. `https://your-api.up.railway.app`, no trailing slash).
 5. Optional: **`API_URL`** — same as the API URL but **server-only**; use when `NEXT_PUBLIC_API_URL` is unset or sitemap/SSR fetches must hit a private URL.
 6. Set **`NEXT_PUBLIC_KEMISPAY_PUBLIC_KEY`** and any other vars from **`apps/web/.env.example`**.
+7. **`NEXT_PUBLIC_PILEIT_LIVE_GATEWAY_URL`** — public Railway URL for **`services/webrtc-rtmp-gateway`** (browser live).
 
 After deploy, confirm the browser can reach the API (CORS must include your Vercel URL) and that login/API calls succeed.
 
