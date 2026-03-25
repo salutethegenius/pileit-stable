@@ -365,6 +365,15 @@ class ContentReport(Base):
     )
 
 
+class SiteSetting(Base):
+    """Key-value site config (JSON payload)."""
+
+    __tablename__ = "site_settings"
+
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    data: Mapped[dict] = mapped_column(JSON, nullable=False)
+
+
 class CreatorAccountDeletionLog(Base):
     """Audit log for reversible creator-account removals by admins."""
 

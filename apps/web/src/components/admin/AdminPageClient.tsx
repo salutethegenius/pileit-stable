@@ -15,6 +15,9 @@ import Stack from "@mui/material/Stack";
 import Skeleton from "@mui/material/Skeleton";
 import Alert from "@mui/material/Alert";
 import Link from "@mui/material/Link";
+import FormGroup from "@mui/material/FormGroup";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Switch from "@mui/material/Switch";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
@@ -24,6 +27,13 @@ import { useAuth } from "@/providers/AuthProvider";
 import { apiFetch, getApiBase } from "@/lib/api";
 import { PILEIT_THEME } from "@/theme/theme";
 import { formatBsd } from "@/utils/currency";
+import {
+  DEFAULT_HOMEPAGE_SECTIONS,
+  HOMEPAGE_SECTION_IDS,
+  HOMEPAGE_SECTION_LABELS,
+  mergeHomepageSections,
+  type HomepageSectionsState,
+} from "@/lib/homepageSections";
 
 type ChannelRow = { label: string; url: string };
 
@@ -140,6 +150,10 @@ export default function AdminPageClient() {
   const [modReports, setModReports] = useState<ModReport[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [kycPreview, setKycPreview] = useState<{ url: string; title: string } | null>(null);
+  const [homepageSectionsAdmin, setHomepageSectionsAdmin] =
+    useState<HomepageSectionsState | null>(null);
+  const [homepageSectionsSaving, setHomepageSectionsSaving] = useState(false);
+  const [homepageSectionsMsg, setHomepageSectionsMsg] = useState<string | null>(null);
 
   const closeKycPreview = () => {
     setKycPreview((prev) => {
@@ -235,6 +249,38 @@ export default function AdminPageClient() {
   useEffect(() => {
     if (accessToken && user?.accountType === "admin") load();
   }, [accessToken, user?.accountType, load]);
+
+  useEffect(() => {
+    if (!accessToken || user?.accountType !== "admin") {
+      setHomepageSectionsAdmin(null);
+      return;
+    }
+    void apiFetch<{ sections: Record<string, boolean> }>("/admin/site/homepage-sections", {
+      accessToken,
+    })
+      .then((r) => setHomepageSectionsAdmin(mergeHomepageSections(r.sections)))
+      .catch(() => setHomepageSectionsAdmin({ ...DEFAULT_HOMEPAGE_SECTIONS }));
+  }, [accessToken, user?.accountType]);
+
+  const saveHomepageSections = useCallback(async () => {
+    if (!accessToken || !homepageSectionsAdmin) return;
+    setHomepageSectionsSaving(true);
+    setHomepageSectionsMsg(null);
+    try {
+      await apiFetch("/admin/site/homepage-sections", {
+        method: "PUT",
+        accessToken,
+        body: JSON.stringify({ sections: homepageSectionsAdmin }),
+      });
+      setHomepageSectionsMsg("Homepage rows saved.");
+    } catch (e) {
+      setHomepageSectionsMsg(
+        e instanceof Error ? e.message : "Save failed — check API and admin token."
+      );
+    } finally {
+      setHomepageSectionsSaving(false);
+    }
+  }, [accessToken, homepageSectionsAdmin]);
 
   useEffect(() => {
     return () => {
@@ -432,6 +478,56 @@ export default function AdminPageClient() {
           ))}
         </Stack>
       )}
+
+      <Typography component="h2" variant="h6" sx={{ mt: 3, mb: 1 }}>
+        Browse / homepage rows
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+        Controls which video rows appear on the public browse page (e.g. Trending, category rails).
+        Turn off rows when you have limited content and repeats look redundant.
+      </Typography>
+      <Paper
+        sx={{
+          p: 2,
+          mb: 4,
+          bgcolor: "#2a2a2a",
+          border: `1px solid ${PILEIT_THEME.border}`,
+        }}
+      >
+        <FormGroup>
+          {HOMEPAGE_SECTION_IDS.map((id) => (
+            <FormControlLabel
+              key={id}
+              control={
+                <Switch
+                  checked={(homepageSectionsAdmin ?? DEFAULT_HOMEPAGE_SECTIONS)[id]}
+                  onChange={(_, checked) =>
+                    setHomepageSectionsAdmin((prev) => {
+                      const base = prev ?? { ...DEFAULT_HOMEPAGE_SECTIONS };
+                      return { ...base, [id]: checked };
+                    })
+                  }
+                />
+              }
+              label={HOMEPAGE_SECTION_LABELS[id]}
+            />
+          ))}
+        </FormGroup>
+        <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 2 }} flexWrap="wrap">
+          <Button
+            variant="contained"
+            disabled={!homepageSectionsAdmin || homepageSectionsSaving}
+            onClick={() => void saveHomepageSections()}
+          >
+            {homepageSectionsSaving ? "Saving…" : "Save homepage rows"}
+          </Button>
+          {homepageSectionsMsg ? (
+            <Typography variant="body2" color="text.secondary">
+              {homepageSectionsMsg}
+            </Typography>
+          ) : null}
+        </Stack>
+      </Paper>
 
       <Typography component="h2" variant="h6" sx={{ mt: 3, mb: 1 }}>
         Creator applications

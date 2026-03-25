@@ -9,10 +9,15 @@ import ContentRow from "./ContentRow";
 import { mockCreators, mockVideos } from "@/data/mock";
 import { getApiBase } from "@/lib/api";
 import { allowMockCatalogFallback } from "@/lib/mockCatalog";
-import { mapApiToPileItVideo, type ApiVideoRow } from "@/lib/mapApiVideo";
-import { mapApiToCreator, type ApiCreatorRow } from "@/lib/mapApiCreator";
+import { safeMapApiVideos, type ApiVideoRow } from "@/lib/mapApiVideo";
+import { safeMapApiCreators, type ApiCreatorRow } from "@/lib/mapApiCreator";
 import type { Creator, PileItVideo } from "@/types/content";
 import { categoryHeroLabel } from "@/utils/categoryStyles";
+import {
+  DEFAULT_HOMEPAGE_SECTIONS,
+  mergeHomepageSections,
+  type HomepageSectionsState,
+} from "@/lib/homepageSections";
 
 /** Mock / fallback: newest uploads first (API list is already newest-creators-first). */
 function byNewestUpload(a: PileItVideo, b: PileItVideo) {
@@ -51,6 +56,9 @@ export default function HomePageClient() {
   const [apiVideos, setApiVideos] = useState<PileItVideo[] | null>(null);
   const [apiCreators, setApiCreators] = useState<Creator[] | null>(null);
   const [catalogFetched, setCatalogFetched] = useState(false);
+  const [homepageSections, setHomepageSections] = useState<HomepageSectionsState>(() => ({
+    ...DEFAULT_HOMEPAGE_SECTIONS,
+  }));
 
   useEffect(() => {
     const base = getApiBase();
@@ -64,7 +72,7 @@ export default function HomePageClient() {
             setApiVideos([]);
             return;
           }
-          setApiVideos(rows.map(mapApiToPileItVideo));
+          setApiVideos(safeMapApiVideos(rows));
         })
         .catch(() => {
           if (!cancelled) setApiVideos([]);
@@ -77,11 +85,20 @@ export default function HomePageClient() {
             setApiCreators([]);
             return;
           }
-          setApiCreators(rows.map(mapApiToCreator));
+          setApiCreators(safeMapApiCreators(rows));
         })
         .catch(() => {
           if (!cancelled) setApiCreators([]);
         }),
+      fetch(`${base}/site/homepage-sections`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data: unknown) => {
+          if (cancelled || !data || typeof data !== "object") return;
+          const sections = (data as { sections?: unknown }).sections;
+          if (sections && typeof sections === "object")
+            setHomepageSections(mergeHomepageSections(sections as Record<string, boolean>));
+        })
+        .catch(() => {}),
     ]).finally(() => {
       if (!cancelled) setCatalogFetched(true);
     });
@@ -151,18 +168,32 @@ export default function HomePageClient() {
         </Box>
       ) : null}
       <Box sx={{ maxWidth: 1440, mx: "auto", width: "100%", px: { xs: 2, md: 3, xl: 4 }, pt: 2 }}>
-        <CreatorRow title="Featured Creators" creators={featuredCreators} />
-        <Box id="trending" sx={{ scrollMarginTop: 88 }}>
-          <ContentRow title="Trending This Week" videos={trend} />
-        </Box>
-        <ContentRow
-          title="New Releases"
-          videos={fresh.length ? fresh : catalog.slice(0, 6)}
-        />
-        <ContentRow title="Comedy" videos={inCategory("Comedy")} />
-        <ContentRow title="Music" videos={inCategory("Music")} />
-        <ContentRow title="Lifestyle" videos={inCategory("Lifestyle")} />
-        <ContentRow title="Free to Watch" videos={free} />
+        {homepageSections.featured_creators ? (
+          <CreatorRow title="Featured Creators" creators={featuredCreators} />
+        ) : null}
+        {homepageSections.trending ? (
+          <Box id="trending" sx={{ scrollMarginTop: 88 }}>
+            <ContentRow title="Trending This Week" videos={trend} />
+          </Box>
+        ) : null}
+        {homepageSections.new_releases ? (
+          <ContentRow
+            title="New Releases"
+            videos={fresh.length ? fresh : catalog.slice(0, 6)}
+          />
+        ) : null}
+        {homepageSections.comedy ? (
+          <ContentRow title="Comedy" videos={inCategory("Comedy")} />
+        ) : null}
+        {homepageSections.music ? (
+          <ContentRow title="Music" videos={inCategory("Music")} />
+        ) : null}
+        {homepageSections.lifestyle ? (
+          <ContentRow title="Lifestyle" videos={inCategory("Lifestyle")} />
+        ) : null}
+        {homepageSections.free_to_watch ? (
+          <ContentRow title="Free to Watch" videos={free} />
+        ) : null}
       </Box>
     </Box>
   );

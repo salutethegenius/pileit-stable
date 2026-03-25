@@ -116,7 +116,7 @@ export default function VideoItemWithHover({ video }: Props) {
               src={IMG.cardThumb(src)}
               alt=""
               fill
-              sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, (max-width: 1200px) 25vw, 16vw"
+              sizes="(max-width: 600px) 100vw, (max-width: 900px) 50vw, 33vw"
               quality={70}
               loading="lazy"
               style={{

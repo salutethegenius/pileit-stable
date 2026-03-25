@@ -44,6 +44,19 @@ export function mapApiToPileItVideo(row: ApiVideoRow): PileItVideo {
   return mapApiVideoToPileItVideoInternal(row, {});
 }
 
+/** Skip malformed rows so one bad payload does not empty the whole catalog. */
+export function safeMapApiVideos(rows: ApiVideoRow[]): PileItVideo[] {
+  const out: PileItVideo[] = [];
+  for (const row of rows) {
+    try {
+      out.push(mapApiToPileItVideo(row));
+    } catch {
+      /* ignore */
+    }
+  }
+  return out;
+}
+
 export function mapApiVideoDetailToPileItVideo(row: ApiVideoDetailRow): PileItVideo {
   return mapApiVideoToPileItVideoInternal(row, {
     tipCount: row.tip_count ?? row.tip_total ?? 0,

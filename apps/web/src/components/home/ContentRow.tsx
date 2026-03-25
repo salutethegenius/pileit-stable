@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 import Slider, { type Settings } from "react-slick";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
@@ -21,38 +21,33 @@ type Props = {
 export default function ContentRow({ title, seeAllHref, videos }: Props) {
   const sliderRef = useRef<Slider>(null);
   const n = videos.length;
-  const cap = (max: number) => Math.max(1, Math.min(max, n));
-  const settings: Settings = {
-    className: "pileit-content-row-slider",
-    speed: 450,
-    arrows: false,
-    infinite: false,
-    centerMode: false,
-    slidesToShow: cap(4),
-    slidesToScroll: Math.min(2, n),
-    responsive: [
-      {
-        breakpoint: 1200,
-        settings: {
-          slidesToShow: cap(3),
-          slidesToScroll: Math.min(2, n),
-          centerMode: false,
+  const settings: Settings = useMemo(() => {
+    const cap = (max: number) => Math.max(1, Math.min(max, n));
+    return {
+      className: "pileit-content-row-slider",
+      speed: 450,
+      arrows: false,
+      infinite: false,
+      centerMode: false,
+      /* YouTube-style: three larger tiles per row on desktop */
+      slidesToShow: cap(3),
+      slidesToScroll: Math.min(3, n),
+      responsive: [
+        {
+          breakpoint: 900,
+          settings: {
+            slidesToShow: cap(2),
+            slidesToScroll: 1,
+            centerMode: false,
+          },
         },
-      },
-      {
-        breakpoint: 900,
-        settings: {
-          slidesToShow: cap(2),
-          slidesToScroll: 1,
-          centerMode: false,
+        {
+          breakpoint: 600,
+          settings: { slidesToShow: 1, slidesToScroll: 1, centerMode: false },
         },
-      },
-      {
-        breakpoint: 600,
-        settings: { slidesToShow: 1, slidesToScroll: 1, centerMode: false },
-      },
-    ],
-  };
+      ],
+    };
+  }, [n]);
 
   if (videos.length === 0) return null;
 

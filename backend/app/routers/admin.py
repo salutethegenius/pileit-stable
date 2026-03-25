@@ -5,7 +5,7 @@ from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -14,8 +14,42 @@ from app.database import get_db
 from app import models
 from app.deps import require_admin
 from app.security import hash_password
+from app.homepage_sections import (
+    HOMEPAGE_SECTION_KEYS,
+    merged_homepage_sections,
+    update_homepage_sections,
+)
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+
+class HomepageSectionsBody(BaseModel):
+    sections: dict[str, bool]
+
+    @field_validator("sections")
+    @classmethod
+    def keys_must_be_known(cls, v: dict[str, bool]) -> dict[str, bool]:
+        for k in v:
+            if k not in HOMEPAGE_SECTION_KEYS:
+                raise ValueError(f"Unknown section: {k}")
+        return v
+
+
+@router.get("/site/homepage-sections")
+def admin_get_homepage_sections(
+    _: Annotated[models.User, Depends(require_admin)],
+    db: Session = Depends(get_db),
+):
+    return {"sections": merged_homepage_sections(db)}
+
+
+@router.put("/site/homepage-sections")
+def admin_put_homepage_sections(
+    body: HomepageSectionsBody,
+    _: Annotated[models.User, Depends(require_admin)],
+    db: Session = Depends(get_db),
+):
+    return {"sections": update_homepage_sections(db, body.sections)}
 
 
 def _upload_base() -> Path:

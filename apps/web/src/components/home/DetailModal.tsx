@@ -18,7 +18,7 @@ import { formatCount, formatCreatorAudienceLine, formatDuration } from "@/utils/
 import ContentRow from "./ContentRow";
 import { getVideosByCreatorHandle } from "@/data/mock";
 import { getApiBase } from "@/lib/api";
-import { mapApiToPileItVideo, type ApiVideoRow } from "@/lib/mapApiVideo";
+import { safeMapApiVideos, type ApiVideoRow } from "@/lib/mapApiVideo";
 import { IMG } from "@/lib/imageUrls";
 import { formatBsd } from "@/utils/currency";
 import type { PileItVideo } from "@/types/content";
@@ -70,9 +70,9 @@ export default function DetailModal() {
           applyFallback();
           return;
         }
-        const mapped = (data as ApiVideoRow[])
-          .map(mapApiToPileItVideo)
-          .filter((v) => v.id !== videoId);
+        const mapped = safeMapApiVideos(data as ApiVideoRow[]).filter(
+          (v) => v.id !== videoId
+        );
         if (!stillActive()) return;
         if (mapped.length > 0) {
           setMoreFrom(mapped);

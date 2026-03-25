@@ -26,6 +26,19 @@ export type ApiCreatorRow = {
   claim_status?: string | null;
 };
 
+/** Skip malformed rows so one bad payload does not empty the whole list. */
+export function safeMapApiCreators(rows: ApiCreatorRow[]): Creator[] {
+  const out: Creator[] = [];
+  for (const row of rows) {
+    try {
+      out.push(mapApiToCreator(row));
+    } catch {
+      /* ignore */
+    }
+  }
+  return out;
+}
+
 export function mapApiToCreator(row: ApiCreatorRow): Creator {
   const avatar = row.avatar_url ? resolveMediaUrl(row.avatar_url) : "";
   const heroRaw = row.hero_image_url ? resolveMediaUrl(row.hero_image_url) : "";
