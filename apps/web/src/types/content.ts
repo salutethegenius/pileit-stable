@@ -34,6 +34,10 @@ export interface PileItVideo {
   backdropUrl?: string;
   /** Streaming playback ID used by the in-app video player */
   playbackId?: string;
+  /** vod | mux_live — when mux_live, player uses live edge */
+  streamSource?: string;
+  /** Mux live lifecycle: idle | active | disabled (etc.) */
+  muxLiveStatus?: string | null;
   /** Legacy direct file/stream URL (optional) */
   videoUrl?: string;
   durationSeconds: number;

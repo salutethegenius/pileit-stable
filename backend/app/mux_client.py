@@ -1,4 +1,4 @@
-"""Minimal Mux Video API client (Direct Uploads + asset status)."""
+"""Mux Video API client (Direct Uploads, assets, live streams)."""
 
 from __future__ import annotations
 
@@ -12,6 +12,8 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 
 MUX_API_BASE = "https://api.mux.com/video/v1"
+# RTMPS ingest (OBS / FFmpeg). Stream key is returned on create; append as the stream key field in software.
+MUX_LIVE_RTMP_URL = "rtmps://global-live.mux.com:443/app"
 
 # End-user-safe API messages (no provider env names or internal URLs in JSON detail).
 _MSG_UPLOAD_UNAVAILABLE = "Upload isn’t available right now. Please try again later."
@@ -99,6 +101,76 @@ def mux_get_asset(asset_id: str) -> dict:
         raise HTTPException(status_code=502, detail=_MSG_UPLOAD_FAILED)
     data = payload.get("data") if isinstance(payload, dict) else None
     return data if isinstance(data, dict) else {}
+
+
+def mux_create_live_stream(
+    *,
+    passthrough: str | None = None,
+) -> dict:
+    """
+    Create a Mux live stream. Returns Mux `data` object (id, stream_key, status, playback_ids, …).
+    """
+    auth = mux_credentials()
+    body: dict = {
+        "playback_policy": ["public"],
+        "new_asset_settings": {
+            # Match direct-upload shape (Mux accepts playback_policies on asset settings).
+            "playback_policies": ["public"],
+        },
+    }
+    if passthrough and passthrough.strip():
+        body["passthrough"] = passthrough.strip()[:255]
+    with httpx.Client(auth=auth, timeout=60.0) as client:
+        r = client.post(f"{MUX_API_BASE}/live-streams", json=body)
+    if not r.is_success:
+        _mux_http_error(r)
+    try:
+        payload = r.json()
+    except ValueError:
+        logger.warning("Video provider returned invalid JSON (create live stream)")
+        raise HTTPException(status_code=502, detail=_MSG_UPLOAD_FAILED)
+    data = payload.get("data") if isinstance(payload, dict) else None
+    return data if isinstance(data, dict) else {}
+
+
+def mux_get_live_stream(live_stream_id: str) -> dict:
+    auth = mux_credentials()
+    with httpx.Client(auth=auth, timeout=60.0) as client:
+        r = client.get(f"{MUX_API_BASE}/live-streams/{live_stream_id}")
+    if not r.is_success:
+        _mux_http_error(r)
+    try:
+        payload = r.json()
+    except ValueError:
+        logger.warning("Video provider returned invalid JSON (live stream)")
+        raise HTTPException(status_code=502, detail=_MSG_UPLOAD_FAILED)
+    data = payload.get("data") if isinstance(payload, dict) else None
+    return data if isinstance(data, dict) else {}
+
+
+def mux_first_playback_id(resource: dict) -> str | None:
+    """First playback id from a Mux asset or live stream `playback_ids` list."""
+    raw = resource.get("playback_ids") or []
+    if not isinstance(raw, list):
+        return None
+    for p in raw:
+        if isinstance(p, str) and p.strip():
+            return p.strip()
+        if isinstance(p, dict) and p.get("id"):
+            s = str(p["id"]).strip()
+            if s:
+                return s
+    return None
+
+
+def mux_delete_live_stream(live_stream_id: str) -> None:
+    auth = mux_credentials()
+    with httpx.Client(auth=auth, timeout=60.0) as client:
+        r = client.delete(f"{MUX_API_BASE}/live-streams/{live_stream_id}")
+    if r.status_code == 404:
+        return
+    if not r.is_success:
+        _mux_http_error(r)
 
 
 def mux_static_thumbnail_url(playback_id: str | None) -> str | None:

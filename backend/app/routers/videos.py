@@ -1,10 +1,11 @@
 import hashlib
+import logging
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import desc
+from sqlalchemy import desc, func, or_
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -14,12 +15,14 @@ from app.isrc_utils import normalize_isrc
 from app.monetization import creator_tip_subscribe_embed
 from app.mux_client import (
     mux_create_direct_upload,
+    mux_delete_live_stream,
     mux_get_asset,
     mux_get_upload,
     mux_static_thumbnail_url,
 )
 
 router = APIRouter(prefix="/videos", tags=["videos"])
+logger = logging.getLogger(__name__)
 VIEW_DEDUPE_WINDOW_MINUTES = 30
 
 
@@ -176,6 +179,8 @@ def _serialize(v: models.Video) -> dict:
         "status": v.status,
         "isrc": v.isrc,
         "created_at": v.created_at.isoformat() if v.created_at else "",
+        "stream_source": getattr(v, "stream_source", None) or "vod",
+        "mux_live_status": getattr(v, "mux_live_status", None),
     }
 
 
@@ -196,6 +201,23 @@ def _delete_pile_comments_for_video(db: Session, video_id: str) -> None:
         for r in leaves:
             db.delete(r)
         db.flush()
+
+
+def _minimal_mine_row(v: models.Video) -> dict:
+    return {
+        "id": v.id,
+        "title": v.title,
+        "description": v.description,
+        "category": v.category,
+        "status": v.status,
+        "view_count": v.view_count,
+        "tip_total": float(v.tip_total),
+        "is_locked": v.is_locked,
+        "thumbnail_url": v.thumbnail_url,
+        "isrc": v.isrc,
+        "stream_source": (v.stream_source if v.stream_source else "vod"),
+        "mux_live_status": v.mux_live_status,
+    }
 
 
 def _cascade_delete_video_rows(db: Session, video_id: str) -> None:
@@ -234,18 +256,7 @@ def list_my_videos(
         .all()
     )
     return [
-        {
-            "id": v.id,
-            "title": v.title,
-            "description": v.description,
-            "category": v.category,
-            "status": v.status,
-            "view_count": v.view_count,
-            "tip_total": float(v.tip_total),
-            "is_locked": v.is_locked,
-            "thumbnail_url": v.thumbnail_url,
-            "isrc": v.isrc,
-        }
+        _minimal_mine_row(v)
         for v in rows
     ]
 
@@ -414,6 +425,12 @@ def list_videos(
         db.query(models.Video)
         .join(models.User, models.User.id == models.Video.creator_id)
         .filter(models.Video.status == "published")
+        .filter(
+            or_(
+                func.coalesce(models.Video.stream_source, "vod") != "mux_live",
+                models.Video.mux_live_status == "active",
+            )
+        )
     )
     if category:
         q = q.filter(models.Video.category == category)
@@ -581,6 +598,15 @@ def delete_video(
     if not v or v.creator_id != user.id:
         raise HTTPException(404, "Not found")
     vid = v.id
+    if v.mux_live_stream_id:
+        try:
+            mux_delete_live_stream(v.mux_live_stream_id)
+        except Exception:
+            logger.warning(
+                "Could not delete Mux live stream %s; continuing video delete",
+                v.mux_live_stream_id,
+                exc_info=True,
+            )
     _cascade_delete_video_rows(db, vid)
     db.delete(v)
     db.commit()

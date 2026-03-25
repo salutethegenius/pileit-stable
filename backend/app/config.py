@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from os.path import isabs
 
-from pydantic import model_validator
+from pydantic import AliasChoices, Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _BACKEND_DIR = Path(__file__).resolve().parent.parent
@@ -43,9 +43,60 @@ class Settings(BaseSettings):
     meta_webhook_verify_token: str = ""
     # Instagram username shown in “DM @…” instructions (no @)
     pileit_instagram_username: str = "PileItOfficial"
-    # Mux Video — Direct Upload (browser → signed URL). Webhooks optional later.
+    # Mux Video — Direct Upload (browser → signed URL) + Live Streams.
     mux_token_id: str = ""
     mux_token_secret: str = ""
+    # Mux webhook signing secret (Dashboard → Webhooks). Optional; verification skipped if empty.
+    mux_webhook_secret: str = ""
+    # Optional S3-compatible bucket (e.g. Railway Buckets — private; serve via GET /public-files/…).
+    # Wire Railway variable references: BUCKET, ENDPOINT, REGION, ACCESS_KEY_ID, SECRET_ACCESS_KEY.
+    s3_bucket: str = Field(
+        default="",
+        validation_alias=AliasChoices(
+            "BUCKET",
+            "PILEIT_S3_BUCKET",
+        ),
+    )
+    s3_endpoint_url: str = Field(
+        default="",
+        validation_alias=AliasChoices(
+            "ENDPOINT",
+            "S3_ENDPOINT",
+            "PILEIT_S3_ENDPOINT",
+        ),
+    )
+    s3_region: str = Field(
+        default="auto",
+        validation_alias=AliasChoices(
+            "REGION",
+            "S3_REGION",
+            "PILEIT_S3_REGION",
+        ),
+    )
+    s3_access_key_id: str = Field(
+        default="",
+        validation_alias=AliasChoices(
+            "ACCESS_KEY_ID",
+            "AWS_ACCESS_KEY_ID",
+            "PILEIT_S3_ACCESS_KEY_ID",
+        ),
+    )
+    s3_secret_access_key: str = Field(
+        default="",
+        validation_alias=AliasChoices(
+            "SECRET_ACCESS_KEY",
+            "AWS_SECRET_ACCESS_KEY",
+            "PILEIT_S3_SECRET_ACCESS_KEY",
+        ),
+    )
+    # Railway docs: virtual-hosted (default) vs path-style; credentials UI may indicate which.
+    s3_addressing_style: str = Field(
+        default="virtual",
+        validation_alias=AliasChoices(
+            "S3_ADDRESSING_STYLE",
+            "PILEIT_S3_ADDRESSING_STYLE",
+        ),
+    )
 
     @model_validator(mode="after")
     def resolve_sqlite_url(self):

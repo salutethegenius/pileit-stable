@@ -11,7 +11,12 @@ export type VideoPlayerProps = {
   accentColor?: string;
   /** When true, renders nothing (parent may show a lock / poster instead). */
   locked?: boolean;
-} & Omit<ComponentProps<typeof MuxPlayer>, "playbackId" | "poster" | "accentColor">;
+  /** Mux Live edge; defaults to on-demand VOD. */
+  streamType?: "live" | "on-demand";
+} & Omit<
+  ComponentProps<typeof MuxPlayer>,
+  "playbackId" | "poster" | "accentColor" | "streamType"
+>;
 
 /**
  * PileIt video player — 16:9 responsive shell. Pass a `playbackId` from your video record.
@@ -21,6 +26,7 @@ export default function VideoPlayer({
   poster,
   accentColor,
   locked,
+  streamType = "on-demand",
   style,
   className,
   ...muxRest
@@ -55,6 +61,7 @@ export default function VideoPlayer({
       >
         <MuxPlayer
           playbackId={playbackId.trim()}
+          streamType={streamType}
           poster={poster}
           accentColor={accentColor}
           style={{ width: "100%", height: "100%", ...(style as CSSProperties) }}

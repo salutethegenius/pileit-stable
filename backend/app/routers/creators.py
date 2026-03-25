@@ -6,7 +6,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import desc, func
+from sqlalchemy import desc, func, or_
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -30,6 +30,14 @@ def _follower_count(db: Session, creator_id: str) -> int:
 
 ALLOWED_IMAGE_EXT = {".jpg", ".jpeg", ".png", ".webp"}
 PAYOUT_PROVIDERS = frozenset({"cash_n_go", "sun_cash", "other"})
+
+
+def _published_catalog_filter():
+    """Hide idle Mux live placeholders from public catalog surfaces."""
+    return or_(
+        func.coalesce(models.Video.stream_source, "vod") != "mux_live",
+        models.Video.mux_live_status == "active",
+    )
 
 
 def _upload_base() -> Path:
@@ -158,6 +166,7 @@ def list_creators(db: Session = Depends(get_db)):
                 .filter(
                     models.Video.creator_id == u.id,
                     models.Video.status == "published",
+                    _published_catalog_filter(),
                 )
                 .count(),
                 "total_tips_received": float(prof.total_tips_received or 0)
@@ -421,6 +430,7 @@ def creator_detail(
         .filter(
             models.Video.creator_id == u.id,
             models.Video.status == "published",
+            _published_catalog_filter(),
         )
         .count(),
         "total_tips_received": float(prof.total_tips_received or 0) if prof else 0,
@@ -438,7 +448,9 @@ def creator_videos(handle: str, db: Session = Depends(get_db)):
     rows = (
         db.query(models.Video)
         .filter(
-            models.Video.creator_id == u.id, models.Video.status == "published"
+            models.Video.creator_id == u.id,
+            models.Video.status == "published",
+            _published_catalog_filter(),
         )
         .all()
     )
@@ -462,6 +474,8 @@ def creator_videos(handle: str, db: Session = Depends(get_db)):
                 "is_locked": v.is_locked,
                 "view_count": v.view_count,
                 "tip_total": float(v.tip_total),
+                "stream_source": v.stream_source or "vod",
+                "mux_live_status": v.mux_live_status,
                 "creator": {
                     "id": u.id,
                     "handle": u.handle,

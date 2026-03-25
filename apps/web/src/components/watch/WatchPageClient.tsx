@@ -65,6 +65,7 @@ export default function WatchPageClient({ video }: Props) {
   );
 
   const playbackId = video.playbackId?.trim() ?? "";
+  const isMuxLive = video.streamSource === "mux_live";
 
   return (
     <Box
@@ -91,6 +92,7 @@ export default function WatchPageClient({ video }: Props) {
           {!showLock && playbackId ? (
             <VideoPlayer
               playbackId={playbackId}
+              streamType={isMuxLive ? "live" : "on-demand"}
               poster={video.thumbnailUrl ? IMG.videoPoster(video.thumbnailUrl) : undefined}
               accentColor={video.creator.accentColor}
               metadata={{

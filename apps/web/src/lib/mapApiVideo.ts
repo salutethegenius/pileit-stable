@@ -16,6 +16,8 @@ export type ApiVideoRow = {
   category?: string | null;
   is_locked: boolean;
   isrc?: string | null;
+  stream_source?: string | null;
+  mux_live_status?: string | null;
   view_count: number;
   tip_total?: number;
   creator: {
@@ -89,6 +91,8 @@ function mapApiVideoToPileItVideoInternal(
     thumbnailUrl: thumb ? IMG.cardThumb(thumb) : "",
     backdropUrl: back ? IMG.heroBackdrop(back) : "",
     playbackId: row.playback_id?.trim() || undefined,
+    streamSource: row.stream_source?.trim() || "vod",
+    muxLiveStatus: row.mux_live_status ?? null,
     videoUrl: row.video_url || undefined,
     durationSeconds: row.duration_seconds ?? 0,
     category: row.category ?? "",

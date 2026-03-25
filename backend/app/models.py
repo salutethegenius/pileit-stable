@@ -161,6 +161,10 @@ class Video(Base):
     playback_id: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
     mux_upload_id: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
     mux_pending_publish: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Mux Live: stream_source vod | mux_live; mux_live_stream_id + mux_live_status from Mux API
+    stream_source: Mapped[str] = mapped_column(String(16), default="vod")
+    mux_live_stream_id: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    mux_live_status: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
     thumbnail_url: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
     duration_seconds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     category: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)

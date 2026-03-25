@@ -29,6 +29,19 @@ def migrate_postgres(engine: Engine) -> None:
                 )
             if "isrc" not in cols:
                 conn.execute(text("ALTER TABLE videos ADD COLUMN isrc VARCHAR(12)"))
+            if "stream_source" not in cols:
+                conn.execute(
+                    text(
+                        "ALTER TABLE videos ADD COLUMN stream_source VARCHAR(16) "
+                        "NOT NULL DEFAULT 'vod'"
+                    )
+                )
+            if "mux_live_stream_id" not in cols:
+                conn.execute(
+                    text("ALTER TABLE videos ADD COLUMN mux_live_stream_id VARCHAR(128)")
+                )
+            if "mux_live_status" not in cols:
+                conn.execute(text("ALTER TABLE videos ADD COLUMN mux_live_status VARCHAR(32)"))
 
 
 def _sqlite_columns(conn, table: str) -> set[str]:
@@ -192,3 +205,16 @@ def migrate_sqlite(engine: Engine) -> None:
                 )
             if "isrc" not in vcols:
                 conn.execute(text("ALTER TABLE videos ADD COLUMN isrc VARCHAR(12)"))
+            if "stream_source" not in vcols:
+                conn.execute(
+                    text(
+                        "ALTER TABLE videos ADD COLUMN stream_source VARCHAR(16) "
+                        "NOT NULL DEFAULT 'vod'"
+                    )
+                )
+            if "mux_live_stream_id" not in vcols:
+                conn.execute(
+                    text("ALTER TABLE videos ADD COLUMN mux_live_stream_id VARCHAR(128)")
+                )
+            if "mux_live_status" not in vcols:
+                conn.execute(text("ALTER TABLE videos ADD COLUMN mux_live_status VARCHAR(32)"))

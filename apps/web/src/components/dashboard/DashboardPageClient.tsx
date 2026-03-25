@@ -52,6 +52,26 @@ type MineVideo = {
   tip_total: number;
   is_locked: boolean;
   isrc?: string | null;
+  stream_source?: string;
+  mux_live_status?: string | null;
+};
+
+type MineLatestLiveRes = {
+  video_id: string;
+  title: string;
+  mux_live_status: string | null;
+  playback_id: string | null;
+  watch_url_path: string;
+};
+
+type CreateMuxLiveRes = {
+  video_id: string;
+  live_stream_id: string;
+  playback_id: string;
+  mux_status: string;
+  rtmp_url: string;
+  stream_key: string;
+  watch_url_path: string;
 };
 
 type IsrcUsageSummary = {
@@ -118,6 +138,15 @@ export default function DashboardPageClient() {
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteErr, setDeleteErr] = useState<string | null>(null);
 
+  const [mineLive, setMineLive] = useState<MineLatestLiveRes | null | undefined>(undefined);
+  const [liveTitle, setLiveTitle] = useState("");
+  const [liveDescription, setLiveDescription] = useState("");
+  const [liveBusy, setLiveBusy] = useState(false);
+  const [liveErr, setLiveErr] = useState<string | null>(null);
+  const [liveCreds, setLiveCreds] = useState<{ rtmp_url: string; stream_key: string } | null>(
+    null
+  );
+
   const loadMineVideos = useCallback(() => {
     if (!accessToken || !user || (user.accountType !== "creator" && user.accountType !== "admin")) {
       setMine([]);
@@ -126,6 +155,16 @@ export default function DashboardPageClient() {
     apiFetch<MineVideo[]>("/videos/mine", { accessToken })
       .then(setMine)
       .catch(() => setMine([]));
+  }, [accessToken, user]);
+
+  const loadActiveMuxLive = useCallback(() => {
+    if (!accessToken || !user || user.accountType !== "creator") {
+      setMineLive(undefined);
+      return;
+    }
+    apiFetch<MineLatestLiveRes | null>("/live-streams/mine/latest", { accessToken })
+      .then((r) => setMineLive(r ?? null))
+      .catch(() => setMineLive(null));
   }, [accessToken, user]);
 
   const loadMon = useCallback(() => {
@@ -151,8 +190,9 @@ export default function DashboardPageClient() {
       .then(setOverview)
       .catch(() => setOverview(null));
     loadMineVideos();
+    loadActiveMuxLive();
     loadMon();
-  }, [accessToken, user, loadMon, loadMineVideos]);
+  }, [accessToken, user, loadMon, loadMineVideos, loadActiveMuxLive]);
 
   const addProduct = async () => {
     if (!accessToken || !productName || !productPrice) return;
@@ -208,6 +248,72 @@ export default function DashboardPageClient() {
       setEditErr(formatApiErrorMessage(e));
     } finally {
       setEditSaving(false);
+    }
+  };
+
+  const createMuxLive = async () => {
+    if (!accessToken || user?.accountType !== "creator") return;
+    const t = liveTitle.trim();
+    if (!t) {
+      setLiveErr("Add a title for this live stream.");
+      return;
+    }
+    setLiveErr(null);
+    setLiveBusy(true);
+    try {
+      const created = await apiFetch<CreateMuxLiveRes>("/live-streams", {
+        method: "POST",
+        accessToken,
+        body: JSON.stringify({
+          title: t,
+          description: liveDescription.trim() || null,
+        }),
+      });
+      setLiveCreds({ rtmp_url: created.rtmp_url, stream_key: created.stream_key });
+      setLiveTitle("");
+      setLiveDescription("");
+      loadMineVideos();
+      loadActiveMuxLive();
+    } catch (e) {
+      setLiveErr(formatApiErrorMessage(e));
+    } finally {
+      setLiveBusy(false);
+    }
+  };
+
+  const syncMuxLive = async () => {
+    if (!accessToken || !mineLive?.video_id) return;
+    setLiveErr(null);
+    setLiveBusy(true);
+    try {
+      await apiFetch(`/live-streams/${encodeURIComponent(mineLive.video_id)}/sync`, {
+        method: "POST",
+        accessToken,
+      });
+      loadActiveMuxLive();
+    } catch (e) {
+      setLiveErr(formatApiErrorMessage(e));
+    } finally {
+      setLiveBusy(false);
+    }
+  };
+
+  const endMuxLive = async () => {
+    if (!accessToken || !mineLive?.video_id) return;
+    setLiveErr(null);
+    setLiveBusy(true);
+    try {
+      await apiFetch(`/live-streams/${encodeURIComponent(mineLive.video_id)}`, {
+        method: "DELETE",
+        accessToken,
+      });
+      setLiveCreds(null);
+      loadMineVideos();
+      loadActiveMuxLive();
+    } catch (e) {
+      setLiveErr(formatApiErrorMessage(e));
+    } finally {
+      setLiveBusy(false);
     }
   };
 
@@ -574,6 +680,110 @@ export default function DashboardPageClient() {
             >
               Videos
             </Typography>
+            {user.accountType === "creator" && (
+              <Paper
+                sx={{
+                  p: 2,
+                  mb: 3,
+                  bgcolor: "#2a2a2a",
+                  border: `1px solid ${PILEIT_THEME.border}`,
+                }}
+              >
+                {mineLive === undefined ? (
+                  <Skeleton height={100} />
+                ) : (
+                  <>
+                    <Typography fontWeight={800} fontStyle="italic" gutterBottom>
+                      Go live (Mux)
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      Create a live stream, then paste the server and stream key into OBS (or any
+                      RTMP encoder). When you start streaming, status becomes active and you appear
+                      on the <Link href="/live">Live</Link> page. Live chat uses your watch page
+                      (same video id as this session).
+                    </Typography>
+                    {liveErr ? (
+                      <Typography color="error" variant="body2" sx={{ mb: 1 }}>
+                        {liveErr}
+                      </Typography>
+                    ) : null}
+                    {mineLive ? (
+                      <Stack spacing={1.5} sx={{ mb: 2 }}>
+                        <Typography variant="body2">
+                          <strong>{mineLive.title}</strong> — Mux status:{" "}
+                          <strong>{mineLive.mux_live_status ?? "—"}</strong>
+                        </Typography>
+                        <Stack direction="row" flexWrap="wrap" gap={1}>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            disabled={liveBusy}
+                            onClick={() => void syncMuxLive()}
+                            sx={{ textTransform: "none" }}
+                          >
+                            Sync status from Mux
+                          </Button>
+                          <Button
+                            size="small"
+                            color="error"
+                            variant="outlined"
+                            disabled={liveBusy}
+                            onClick={() => void endMuxLive()}
+                            sx={{ textTransform: "none" }}
+                          >
+                            End stream (delete Mux ingest)
+                          </Button>
+                          <Button
+                            size="small"
+                            component={Link}
+                            href={mineLive.watch_url_path}
+                            sx={{ textTransform: "none" }}
+                          >
+                            Open watch page
+                          </Button>
+                        </Stack>
+                      </Stack>
+                    ) : null}
+                    {liveCreds ? (
+                      <Alert severity="warning" sx={{ mb: 2 }}>
+                        Copy your stream key now — it won’t be shown again. Server:{" "}
+                        <strong>{liveCreds.rtmp_url}</strong> · Stream key:{" "}
+                        <strong style={{ wordBreak: "break-all" }}>{liveCreds.stream_key}</strong>
+                      </Alert>
+                    ) : null}
+                    {mineLive === null ? (
+                      <Stack spacing={2} sx={{ maxWidth: 480 }}>
+                        <TextField
+                          label="Live title"
+                          value={liveTitle}
+                          onChange={(e) => setLiveTitle(e.target.value)}
+                          size="small"
+                          fullWidth
+                          required
+                        />
+                        <TextField
+                          label="Description (optional)"
+                          value={liveDescription}
+                          onChange={(e) => setLiveDescription(e.target.value)}
+                          size="small"
+                          fullWidth
+                          multiline
+                          minRows={2}
+                        />
+                        <Button
+                          variant="contained"
+                          disabled={liveBusy}
+                          onClick={() => void createMuxLive()}
+                          sx={{ textTransform: "none", alignSelf: "flex-start" }}
+                        >
+                          Create live stream
+                        </Button>
+                      </Stack>
+                    ) : null}
+                  </>
+                )}
+              </Paper>
+            )}
             <Button
               component={Link}
               href="/dashboard/upload"
@@ -597,8 +807,20 @@ export default function DashboardPageClient() {
               <TableBody>
                 {mine.map((v) => (
                   <TableRow key={v.id}>
-                    <TableCell>{v.title}</TableCell>
-                    <TableCell>{v.status}</TableCell>
+                    <TableCell>
+                      {v.title}
+                      {v.stream_source === "mux_live" ? (
+                        <Typography component="span" variant="caption" sx={{ ml: 1, color: "error.main" }}>
+                          LIVE
+                        </Typography>
+                      ) : null}
+                    </TableCell>
+                    <TableCell>
+                      {v.status}
+                      {v.stream_source === "mux_live" && v.mux_live_status
+                        ? ` · ${v.mux_live_status}`
+                        : ""}
+                    </TableCell>
                     <TableCell sx={{ fontFamily: "monospace", fontSize: "0.8rem" }}>
                       {v.isrc || "—"}
                     </TableCell>
