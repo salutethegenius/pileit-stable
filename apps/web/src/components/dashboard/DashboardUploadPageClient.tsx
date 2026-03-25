@@ -18,6 +18,7 @@ import { useAuth } from "@/providers/AuthProvider";
 import { apiFetch, ApiError } from "@/lib/api";
 import VideoPlayer from "@/components/VideoPlayer";
 import PileItVideoUploadForm from "@/components/dashboard/PileItVideoUploadForm";
+import DashboardGoLiveMuxPanel from "@/components/dashboard/DashboardGoLiveMuxPanel";
 import { PILEIT_THEME } from "@/theme/theme";
 
 function uploadErrorMessage(err: unknown): string {
@@ -136,7 +137,10 @@ export default function DashboardUploadPageClient() {
         >
           <Tab label="Upload to PileIt" id="upload-tab-file" sx={{ textTransform: "none" }} />
           <Tab label="Paste video ID" id="upload-tab-paste" sx={{ textTransform: "none" }} />
+          <Tab label="Go live (Mux)" id="upload-tab-live" sx={{ textTransform: "none" }} />
         </Tabs>
+
+        {uploadTab === 2 ? <DashboardGoLiveMuxPanel /> : null}
 
         {uploadTab === 0 && accessToken ? (
           <PileItVideoUploadForm

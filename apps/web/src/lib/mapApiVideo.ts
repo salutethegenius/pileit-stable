@@ -6,6 +6,8 @@ import { muxThumbnailUrl } from "@/lib/muxThumbnails";
 /** Backend GET /videos row shape */
 export type ApiVideoRow = {
   id: string;
+  /** Present on some list payloads (e.g. live-streams/active); otherwise use creator.id */
+  creator_id?: string;
   title: string;
   description: string | null;
   thumbnail_url: string | null;

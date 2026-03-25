@@ -28,9 +28,17 @@ const navLinkSx = {
   "&:hover": { color: "text.primary" },
 };
 
-/** Logged-in creator’s public channel — same URL viewers use (`/creator/[handle]`). */
-function myPileHref(handle: string) {
+/** Public channel URL — same as viewers use (`/creator/[handle]`). */
+function myChannelHref(handle: string) {
   return `/creator/${encodeURIComponent(handle)}`;
+}
+
+function canOpenPublicChannel(user: {
+  accountType: string;
+  handle: string | null;
+}): user is typeof user & { handle: string } {
+  if (!user.handle?.trim()) return false;
+  return user.accountType === "creator" || user.accountType === "admin";
 }
 
 export default function Navbar() {
@@ -81,6 +89,15 @@ export default function Navbar() {
             <Typography component={Link} href="/live" sx={navLinkSx}>
               Live
             </Typography>
+            {user && canOpenPublicChannel(user) ? (
+              <Typography
+                component={Link}
+                href={myChannelHref(user.handle)}
+                sx={navLinkSx}
+              >
+                My channel
+              </Typography>
+            ) : null}
           </Box>
         )}
 
@@ -112,6 +129,15 @@ export default function Navbar() {
               <MenuItem component={Link} href="/live" onClick={() => setMobileOpen(null)}>
                 Live
               </MenuItem>
+              {user && canOpenPublicChannel(user) ? (
+                <MenuItem
+                  component={Link}
+                  href={myChannelHref(user.handle)}
+                  onClick={() => setMobileOpen(null)}
+                >
+                  My channel
+                </MenuItem>
+              ) : null}
               {user && (
                 <>
                   <MenuItem
@@ -121,16 +147,6 @@ export default function Navbar() {
                   >
                     My profile
                   </MenuItem>
-                  {user.handle && user.accountType === "creator" ? (
-                    <MenuItem
-                      component={Link}
-                      href={myPileHref(user.handle)}
-                      onClick={() => setMobileOpen(null)}
-                      title="Your public channel — the same page viewers see when they visit your handle."
-                    >
-                      My Pile
-                    </MenuItem>
-                  ) : null}
                   {user.accountType === "viewer" && (
                     <MenuItem
                       component={Link}
@@ -276,14 +292,14 @@ export default function Navbar() {
                 >
                   My profile
                 </MenuItem>
-                {user.handle && user.accountType === "creator" ? (
+                {canOpenPublicChannel(user) ? (
                   <MenuItem
                     component={Link}
-                    href={myPileHref(user.handle)}
+                    href={myChannelHref(user.handle)}
                     onClick={() => setAnchor(null)}
-                    title="Your public channel — the same page viewers see when they visit your handle."
+                    title="Your public channel — the same URL viewers use."
                   >
-                    My Pile
+                    My channel
                   </MenuItem>
                 ) : null}
                 {user.accountType === "viewer" && (

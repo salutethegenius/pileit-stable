@@ -26,8 +26,13 @@ import { IMG } from "@/lib/imageUrls";
 import { formatBsd } from "@/utils/currency";
 import CategoryMediaPlaceholder from "@/components/brand/CategoryMediaPlaceholder";
 import CreatorClaimModal from "@/components/creator/CreatorClaimModal";
-import { apiFetch, formatApiErrorMessage } from "@/lib/api";
+import { apiFetch, formatApiErrorMessage, getApiBase } from "@/lib/api";
 import { useAuth } from "@/providers/AuthProvider";
+import VideoPlayer from "@/components/VideoPlayer";
+import Link from "next/link";
+import type { ApiVideoRow } from "@/lib/mapApiVideo";
+
+const LIVE_POLL_MS = 12_000;
 
 type Props = { creator: Creator; videos: PileItVideo[] };
 
@@ -45,6 +50,8 @@ export default function CreatorChannelClient({ creator, videos }: Props) {
   const [following, setFollowing] = useState(creator.viewerFollows === true);
   const [followBusy, setFollowBusy] = useState(false);
   const [followErr, setFollowErr] = useState<string | null>(null);
+  /** Active Mux live for this creator (from GET /live-streams/active). */
+  const [activeLive, setActiveLive] = useState<ApiVideoRow | null>(null);
 
   const isOwnChannel = user?.id === creator.id;
 
@@ -65,6 +72,30 @@ export default function CreatorChannelClient({ creator, videos }: Props) {
       .then((r) => setFollowing(Boolean(r.following)))
       .catch(() => {});
   }, [accessToken, creator.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const res = await fetch(`${getApiBase()}/live-streams/active`);
+        if (!res.ok || cancelled) return;
+        const rows = (await res.json()) as ApiVideoRow[];
+        if (!Array.isArray(rows) || cancelled) return;
+        const hit = rows.find(
+          (r) => r.creator?.id === creator.id || r.creator_id === creator.id
+        );
+        if (!cancelled) setActiveLive(hit ?? null);
+      } catch {
+        if (!cancelled) setActiveLive(null);
+      }
+    };
+    void load();
+    const t = setInterval(() => void load(), LIVE_POLL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(t);
+    };
+  }, [creator.id]);
 
   const handleFollowToggle = useCallback(async () => {
     if (!accessToken) {
@@ -107,10 +138,15 @@ export default function CreatorChannelClient({ creator, videos }: Props) {
   const showClaimUi = claimStatus !== "live";
 
   const filtered = useMemo(() => {
-    if (filter === "free") return videos.filter((v) => !v.isLocked);
-    if (filter === "locked") return videos.filter((v) => v.isLocked);
-    return videos;
-  }, [videos, filter]);
+    let list =
+      filter === "free"
+        ? videos.filter((v) => !v.isLocked)
+        : filter === "locked"
+          ? videos.filter((v) => v.isLocked)
+          : videos;
+    if (activeLive?.id) list = list.filter((v) => v.id !== activeLive.id);
+    return list;
+  }, [videos, filter, activeLive?.id]);
 
   const mockProducts = [
     { id: "p1", name: "Island Crewneck", price: 45, image: creator.avatarUrl },
@@ -175,6 +211,9 @@ export default function CreatorChannelClient({ creator, videos }: Props) {
               <Typography component="h1" variant="h4" fontStyle="italic" fontWeight={800}>
                 {creator.displayName}
               </Typography>
+              {activeLive?.playback_id ? (
+                <Chip label="LIVE" size="small" color="error" sx={{ fontWeight: 900 }} />
+              ) : null}
               <CreatorBadges
                 verified={creator.verified}
                 monetizationEligible={creator.monetizationEligible}
@@ -267,8 +306,36 @@ export default function CreatorChannelClient({ creator, videos }: Props) {
           </Box>
         </Stack>
 
-        <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mt: 4, mb: 2 }}>
+        {activeLive?.playback_id ? (
+          <Alert
+            severity="error"
+            icon={false}
+            sx={{
+              mt: 3,
+              bgcolor: "rgba(185, 28, 28, 0.12)",
+              border: "1px solid rgba(239, 68, 68, 0.35)",
+            }}
+            action={
+              <Button color="inherit" size="small" sx={{ textTransform: "none" }} onClick={() => setTab(1)}>
+                Watch live
+              </Button>
+            }
+          >
+            <Typography variant="body2" fontWeight={700}>
+              {creator.displayName} is live now — open the Live tab to watch.
+            </Typography>
+          </Alert>
+        ) : null}
+
+        <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mt: 3, mb: 2 }}>
           <Tab label="Videos" />
+          <Tab
+            label={
+              <Badge variant="dot" color="error" invisible={!activeLive?.playback_id} sx={{ pr: 1 }}>
+                Live
+              </Badge>
+            }
+          />
           <Tab label="Shop" />
           <Tab label="About" />
         </Tabs>
@@ -305,6 +372,88 @@ export default function CreatorChannelClient({ creator, videos }: Props) {
         )}
 
         {tab === 1 && (
+          <>
+            {activeLive?.playback_id ? (
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 2,
+                  bgcolor: "#1a1a1a",
+                  border: `1px solid ${PILEIT_THEME.border}`,
+                  mb: 2,
+                }}
+              >
+                <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }} flexWrap="wrap">
+                  <Chip label="LIVE" size="small" color="error" sx={{ fontWeight: 800 }} />
+                  <Typography fontWeight={800} fontStyle="italic">
+                    {activeLive.title}
+                  </Typography>
+                </Stack>
+                <VideoPlayer
+                  playbackId={activeLive.playback_id.trim()}
+                  streamType="live"
+                  poster={
+                    activeLive.thumbnail_url
+                      ? IMG.videoPoster(activeLive.thumbnail_url)
+                      : undefined
+                  }
+                  accentColor={creator.accentColor}
+                  metadata={{
+                    video_id: activeLive.id,
+                    video_title: activeLive.title,
+                  }}
+                />
+                <Stack direction="row" spacing={1} sx={{ mt: 2 }} flexWrap="wrap">
+                  <Button
+                    component={Link}
+                    href={`/watch/${encodeURIComponent(activeLive.id)}`}
+                    variant="contained"
+                    sx={{ textTransform: "none" }}
+                  >
+                    Open watch page (chat & Pile)
+                  </Button>
+                  {isOwnChannel ? (
+                    <Button
+                      component={Link}
+                      href="/dashboard"
+                      variant="outlined"
+                      sx={{ textTransform: "none" }}
+                    >
+                      Stream settings
+                    </Button>
+                  ) : null}
+                </Stack>
+              </Paper>
+            ) : (
+              <Paper
+                sx={{
+                  p: 3,
+                  bgcolor: "#2a2a2a",
+                  border: `1px solid ${PILEIT_THEME.border}`,
+                }}
+              >
+                <Typography color="text.secondary" sx={{ mb: 2 }}>
+                  No live stream right now.
+                </Typography>
+                <Button component={Link} href="/live" variant="outlined" sx={{ textTransform: "none" }}>
+                  See who&apos;s live on PileIt
+                </Button>
+                {isOwnChannel ? (
+                  <Button
+                    component={Link}
+                    href="/dashboard"
+                    variant="contained"
+                    sx={{ textTransform: "none", ml: { xs: 0, sm: 1 }, mt: { xs: 1, sm: 0 } }}
+                  >
+                    Go live from dashboard
+                  </Button>
+                ) : null}
+              </Paper>
+            )}
+          </>
+        )}
+
+        {tab === 2 && (
           <Grid container spacing={2}>
             {mockProducts.map((p) => (
               <Grid item xs={12} sm={6} md={3} key={p.id}>
@@ -337,7 +486,7 @@ export default function CreatorChannelClient({ creator, videos }: Props) {
           </Grid>
         )}
 
-        {tab === 2 && (
+        {tab === 3 && (
           <Paper sx={{ p: 3, bgcolor: "#2a2a2a", border: `1px solid ${PILEIT_THEME.border}` }}>
             <Typography paragraph>{creator.bio}</Typography>
             <Grid container spacing={2}>
