@@ -10,6 +10,9 @@ import Stack from "@mui/material/Stack";
 import IconButton from "@mui/material/IconButton";
 import Avatar from "@mui/material/Avatar";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import VolumeUpIcon from "@mui/icons-material/VolumeUp";
+import VolumeOffIcon from "@mui/icons-material/VolumeOff";
+import { alpha } from "@mui/material/styles";
 import type { PileItVideo } from "@/types/content";
 import { useDetailModal } from "@/providers/DetailModalProvider";
 import { formatCount, formatDuration, formatRelativeTime } from "@/utils/format";
@@ -26,12 +29,13 @@ type Props = { video: PileItVideo };
 
 /**
  * YouTube-style row card: 16:9 thumbnail + always-visible metadata (no hover popup).
- * Fine-pointer hover on the thumbnail plays a muted Mux preview after a short delay.
+ * Fine-pointer hover on the thumbnail plays a Mux preview after a short delay; optional unmute via control.
  */
 export default function VideoItemWithHover({ video }: Props) {
   const { openDetail } = useDetailModal();
   const [imgFailed, setImgFailed] = useState(false);
   const [previewActive, setPreviewActive] = useState(false);
+  const [previewMuted, setPreviewMuted] = useState(true);
   const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const coarsePointer = useCoarsePointer();
   const prefersReducedMotion = usePrefersReducedMotion();
@@ -74,6 +78,7 @@ export default function VideoItemWithHover({ video }: Props) {
   const onThumbPointerLeave = useCallback(() => {
     clearPreviewTimer();
     setPreviewActive(false);
+    setPreviewMuted(true);
   }, [clearPreviewTimer]);
 
   const showPlaceholder = !src || imgFailed;
@@ -85,112 +90,155 @@ export default function VideoItemWithHover({ video }: Props) {
     `${formatCount(video.tipCount)} tips`,
   ];
 
+  const titleLineHeight = 1.3;
+
   return (
     <Box
       sx={{
-        borderRadius: 1,
+        borderRadius: 2,
         overflow: "hidden",
-        bgcolor: "transparent",
+        transition: (theme) =>
+          theme.transitions.create("background-color", { duration: theme.transitions.duration.shortest }),
+        "&:hover": {
+          bgcolor: (theme) => alpha(theme.palette.primary.main, 0.12),
+        },
       }}
     >
-      <Link
-        href={watchHref}
-        style={{ textDecoration: "none", color: "inherit", display: "block" }}
-        aria-label={`Watch ${video.title}`}
+      <Box
+        sx={{
+          position: "relative",
+          pt: "56.25%",
+          bgcolor: "#000",
+          isolation: "isolate",
+          borderRadius: "8px 8px 0 0",
+        }}
+        onPointerEnter={onThumbPointerEnter}
+        onPointerLeave={onThumbPointerLeave}
       >
+        {showPlaceholder ? (
+          <CategoryMediaPlaceholder category={video.category} variant="card" />
+        ) : null}
+        {src && !imgFailed ? (
+          <Image
+            src={IMG.cardThumb(src)}
+            alt=""
+            fill
+            sizes="(max-width: 600px) 100vw, (max-width: 900px) 50vw, 33vw"
+            quality={70}
+            loading="lazy"
+            style={{
+              objectFit: "cover",
+              opacity: previewActive ? 0 : 1,
+              transition: "opacity 0.2s ease",
+            }}
+            onError={() => setImgFailed(true)}
+          />
+        ) : null}
+        <VideoHoverPreview
+          playbackId={playbackId}
+          accentColor={video.creator.accentColor}
+          active={previewActive}
+          muted={previewMuted}
+        />
         <Box
           sx={{
-            position: "relative",
-            pt: "56.25%",
-            bgcolor: "#000",
-            isolation: "isolate",
+            position: "absolute",
+            inset: 0,
+            zIndex: 2,
+            background:
+              "linear-gradient(180deg, transparent 55%, rgba(0,0,0,0.55) 100%)",
+            pointerEvents: "none",
           }}
-          onPointerEnter={onThumbPointerEnter}
-          onPointerLeave={onThumbPointerLeave}
-        >
-          {showPlaceholder ? (
-            <CategoryMediaPlaceholder category={video.category} variant="card" />
-          ) : null}
-          {src && !imgFailed ? (
-            <Image
-              src={IMG.cardThumb(src)}
-              alt=""
-              fill
-              sizes="(max-width: 600px) 100vw, (max-width: 900px) 50vw, 33vw"
-              quality={70}
-              loading="lazy"
-              style={{
-                objectFit: "cover",
-                opacity: previewActive ? 0 : 1,
-                transition: "opacity 0.2s ease",
-              }}
-              onError={() => setImgFailed(true)}
-            />
-          ) : null}
-          <VideoHoverPreview
-            playbackId={playbackId}
-            accentColor={video.creator.accentColor}
-            active={previewActive}
-          />
-          <Box
+        />
+        <Box
+          component={Link}
+          href={watchHref}
+          aria-label={`Watch ${video.title}`}
+          sx={{
+            position: "absolute",
+            inset: 0,
+            zIndex: 3,
+            color: "inherit",
+            textDecoration: "none",
+          }}
+        />
+        {video.isNew && (
+          <Chip
+            label="NEW"
+            size="small"
             sx={{
               position: "absolute",
-              inset: 0,
-              zIndex: 2,
-              background:
-                "linear-gradient(180deg, transparent 55%, rgba(0,0,0,0.55) 100%)",
+              top: 8,
+              left: 8,
+              zIndex: 4,
               pointerEvents: "none",
+              bgcolor: "primary.main",
+              color: "#fff",
+              fontWeight: 800,
+              height: 22,
+              fontSize: 11,
             }}
           />
-          {video.isNew && (
-            <Chip
-              label="NEW"
-              size="small"
-              sx={{
-                position: "absolute",
-                top: 8,
-                left: 8,
-                zIndex: 3,
-                bgcolor: "primary.main",
-                color: "#fff",
-                fontWeight: 800,
-                height: 22,
-                fontSize: 11,
-              }}
-            />
-          )}
-          {video.isLocked && (
-            <Chip
-              label="Subs Only"
-              size="small"
-              sx={{
-                position: "absolute",
-                top: 8,
-                right: 8,
-                zIndex: 3,
-                bgcolor: "rgba(0,0,0,0.75)",
-                color: "#fff",
-                height: 22,
-                fontSize: 11,
-              }}
-            />
-          )}
-          <Typography
-            variant="caption"
+        )}
+        {video.isLocked && (
+          <Chip
+            label="Subs Only"
+            size="small"
             sx={{
               position: "absolute",
-              bottom: 8,
-              right: 8,
-              zIndex: 3,
+              top: 8,
+              right: previewActive && canHoverPreview ? 48 : 8,
+              zIndex: 4,
+              pointerEvents: "none",
+              bgcolor: "rgba(0,0,0,0.75)",
               color: "#fff",
-              fontWeight: 700,
-              textShadow: "0 1px 4px rgba(0,0,0,0.8)",
+              height: 22,
+              fontSize: 11,
+            }}
+          />
+        )}
+        {previewActive && canHoverPreview ? (
+          <IconButton
+            size="small"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setPreviewMuted((m) => !m);
+            }}
+            aria-label={previewMuted ? "Unmute preview" : "Mute preview"}
+            sx={{
+              position: "absolute",
+              top: 6,
+              right: 6,
+              zIndex: 5,
+              color: "#fff",
+              bgcolor: "rgba(0,0,0,0.45)",
+              "&:hover": { bgcolor: "rgba(0,0,0,0.6)" },
             }}
           >
-            {formatDuration(video.durationSeconds)}
-          </Typography>
-        </Box>
-      </Link>
+            {previewMuted ? (
+              <VolumeOffIcon sx={{ fontSize: 22 }} />
+            ) : (
+              <VolumeUpIcon sx={{ fontSize: 22 }} />
+            )}
+          </IconButton>
+        ) : null}
+        <Typography
+          variant="caption"
+          sx={{
+            position: "absolute",
+            bottom: 8,
+            right: 8,
+            zIndex: 4,
+            pointerEvents: "none",
+            color: "#fff",
+            fontWeight: 700,
+            textShadow: "0 1px 4px rgba(0,0,0,0.8)",
+          }}
+        >
+          {formatDuration(video.durationSeconds)}
+        </Typography>
+      </Box>
 
       <Stack
         direction="row"
@@ -213,9 +261,12 @@ export default function VideoItemWithHover({ video }: Props) {
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Box
             sx={{
-              /* Two lines: matches title Typography lineHeight 1.35 × body2 font size */
-              minHeight: (theme) =>
-                `calc(2 * 1.35 * ${theme.typography.body2.fontSize})`,
+              minHeight: (theme) => {
+                const sub = theme.typography.subtitle1;
+                const fs =
+                  typeof sub.fontSize === "string" ? sub.fontSize : `${sub.fontSize ?? 16}px`;
+                return `calc(2 * ${titleLineHeight} * ${fs})`;
+              },
               mb: 0.5,
             }}
           >
@@ -225,15 +276,15 @@ export default function VideoItemWithHover({ video }: Props) {
               aria-label={video.title}
             >
               <Typography
-                variant="body2"
-                fontWeight={800}
-                fontStyle="italic"
+                variant="subtitle1"
+                fontWeight={700}
                 sx={{
+                  fontStyle: "normal",
                   display: "-webkit-box",
                   WebkitLineClamp: 2,
                   WebkitBoxOrient: "vertical",
                   overflow: "hidden",
-                  lineHeight: 1.35,
+                  lineHeight: titleLineHeight,
                 }}
               >
                 {video.title}
