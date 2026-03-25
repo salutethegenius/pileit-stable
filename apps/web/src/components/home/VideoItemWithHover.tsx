@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import Paper from "@mui/material/Paper";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import Typography from "@mui/material/Typography";
@@ -87,14 +86,11 @@ export default function VideoItemWithHover({ video }: Props) {
   ];
 
   return (
-    <Paper
-      elevation={0}
+    <Box
       sx={{
-        bgcolor: "background.paper",
         borderRadius: 1,
         overflow: "hidden",
-        border: "1px solid",
-        borderColor: "divider",
+        bgcolor: "transparent",
       }}
     >
       <Link
@@ -215,27 +211,35 @@ export default function VideoItemWithHover({ video }: Props) {
           />
         </Box>
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Link
-            href={watchHref}
-            style={{ textDecoration: "none", color: "inherit" }}
-            aria-label={video.title}
+          <Box
+            sx={{
+              /* Two lines: matches title Typography lineHeight 1.35 × body2 font size */
+              minHeight: (theme) =>
+                `calc(2 * 1.35 * ${theme.typography.body2.fontSize})`,
+              mb: 0.5,
+            }}
           >
-            <Typography
-              variant="body2"
-              fontWeight={800}
-              fontStyle="italic"
-              sx={{
-                display: "-webkit-box",
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: "vertical",
-                overflow: "hidden",
-                lineHeight: 1.35,
-                mb: 0.5,
-              }}
+            <Link
+              href={watchHref}
+              style={{ textDecoration: "none", color: "inherit" }}
+              aria-label={video.title}
             >
-              {video.title}
-            </Typography>
-          </Link>
+              <Typography
+                variant="body2"
+                fontWeight={800}
+                fontStyle="italic"
+                sx={{
+                  display: "-webkit-box",
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                  lineHeight: 1.35,
+                }}
+              >
+                {video.title}
+              </Typography>
+            </Link>
+          </Box>
           <Stack direction="row" alignItems="center" spacing={0.5} flexWrap="wrap" sx={{ mb: 0.25 }}>
             <Typography variant="caption" color="text.secondary" component="span">
               {video.creator.displayName}
@@ -281,6 +285,6 @@ export default function VideoItemWithHover({ video }: Props) {
           <MoreVertIcon sx={{ fontSize: 20 }} />
         </IconButton>
       </Stack>
-    </Paper>
+    </Box>
   );
 }
