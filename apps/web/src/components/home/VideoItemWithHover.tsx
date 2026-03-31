@@ -249,13 +249,19 @@ export default function VideoItemWithHover({ video }: Props) {
         <Box
           component={Link}
           href={`/creator/${encodeURIComponent(video.creator.handle)}`}
-          sx={{ flexShrink: 0, mt: 0.25 }}
+          sx={{ flexShrink: 0, mt: "1px" }}
           aria-label={`${video.creator.displayName} channel`}
         >
           <Avatar
             src={video.creator.avatarUrl ? IMG.avatar(video.creator.avatarUrl) : undefined}
             alt=""
-            sx={{ width: 36, height: 36 }}
+            sx={{
+              width: 30,
+              height: 30,
+              fontSize: "0.65rem",
+              border: `1px solid ${video.creator.accentColor}`,
+              bgcolor: "#1a0f05",
+            }}
           />
         </Box>
         <Box sx={{ flex: 1, minWidth: 0 }}>

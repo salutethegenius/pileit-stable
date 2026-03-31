@@ -17,6 +17,7 @@ export default function SiteLayout({
       >
         {children}
       </Box>
+      <Box sx={{ height: 64, flexShrink: 0 }} aria-hidden />
       <SiteFooter />
       <GlobalOverlays />
     </Box>

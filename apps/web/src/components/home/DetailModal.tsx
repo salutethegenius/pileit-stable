@@ -204,6 +204,7 @@ export default function DetailModal() {
         {moreFrom.length > 0 && (
           <ContentRow
             title={`More from ${detailVideo.creator.displayName}`}
+            seeAllHref={`/creator/${encodeURIComponent(detailVideo.creator.handle)}`}
             videos={moreFrom}
           />
         )}

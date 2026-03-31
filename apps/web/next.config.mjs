@@ -17,6 +17,7 @@ const nextConfig = {
     return [{ source: "/pileit-data/:path*", destination: `${apiOrigin}/:path*` }];
   },
   images: {
+    minimumCacheTTL: 3600,
     remotePatterns: [
       {
         protocol: "https",

@@ -3,14 +3,12 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import Slider, { type Settings } from "react-slick";
 import Box from "@mui/material/Box";
-import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import Link from "next/link";
 import type { Creator } from "@/types/content";
 import CreatorCard from "./CreatorCard";
+import SectionHeader from "./SectionHeader";
 
 type Props = { title: string; creators: Creator[] };
 
@@ -51,32 +49,20 @@ export default function CreatorRow({ title, creators }: Props) {
 
   return (
     <Box sx={{ mb: 3 }}>
-      <Stack
-        direction="row"
-        alignItems="center"
-        justifyContent="space-between"
-        sx={{ mb: 1.5, pr: 1 }}
-      >
-        <Typography component="h2" variant="h6" fontWeight={800} sx={{ fontStyle: "normal" }}>
-          {title}
-        </Typography>
-        <Stack direction="row" spacing={1}>
-          <Typography
-            component={Link}
-            href="/creators"
-            variant="body2"
-            sx={{ color: "primary.main", fontWeight: 600, mr: 1 }}
-          >
-            See All →
-          </Typography>
-          <IconButton size="small" onClick={() => sliderRef.current?.slickPrev()}>
-            <ChevronLeftIcon />
-          </IconButton>
-          <IconButton size="small" onClick={() => sliderRef.current?.slickNext()}>
-            <ChevronRightIcon />
-          </IconButton>
-        </Stack>
-      </Stack>
+      <SectionHeader
+        title={title}
+        seeAllHref="/creators"
+        endActions={
+          <>
+            <IconButton size="small" onClick={() => sliderRef.current?.slickPrev()} aria-label="Previous">
+              <ChevronLeftIcon />
+            </IconButton>
+            <IconButton size="small" onClick={() => sliderRef.current?.slickNext()} aria-label="Next">
+              <ChevronRightIcon />
+            </IconButton>
+          </>
+        }
+      />
       <Slider ref={sliderRef} key={`${slidesToShow}-${n}`} {...settings}>
         {creators.map((c) => (
           <Box key={c.id} sx={{ px: 1, minWidth: 0, overflow: "hidden" }}>

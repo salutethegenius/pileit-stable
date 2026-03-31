@@ -32,29 +32,29 @@ export default function CreatorCard({ creator }: { creator: Creator }) {
         p: 2,
         maxWidth: "100%",
         overflow: "hidden",
-        bgcolor: "#2a2a2a",
-        border: "1px solid #333",
-        borderRadius: 2,
+        bgcolor: "rgba(255,255,255,0.03)",
+        border: "0.5px solid rgba(240,237,232,0.08)",
+        borderRadius: "10px",
         textDecoration: "none",
-        transition: "transform 0.2s ease, box-shadow 0.2s ease",
+        transition: "background-color 0.2s ease, border-color 0.2s ease",
         "&:hover": {
-          transform: "scale(1.04)",
-          boxShadow: "0 8px 32px rgba(0,0,0,0.45)",
+          bgcolor: "rgba(255,255,255,0.05)",
+          borderColor: "rgba(240,237,232,0.12)",
         },
       }}
     >
-      <Stack direction="row" spacing={2} alignItems="center" sx={{ minWidth: 0 }}>
+      <Stack direction="row" spacing={1.5} alignItems="center" sx={{ minWidth: 0 }}>
         <Box
           sx={{
             position: "relative",
-            width: 72,
-            height: 72,
+            width: 44,
+            height: 44,
             flexShrink: 0,
             borderRadius: "50%",
             overflow: "hidden",
-            border: `3px solid ${creator.accentColor}`,
-            boxShadow: `0 0 12px ${creator.accentColor}55`,
-            bgcolor: "#333",
+            border: `1.5px solid ${creator.accentColor}`,
+            boxShadow: "none",
+            bgcolor: "#1a0f05",
           }}
         >
           {showAvatarPlaceholder ? (
@@ -73,11 +73,11 @@ export default function CreatorCard({ creator }: { creator: Creator }) {
         <Box sx={{ minWidth: 0, flex: 1 }}>
           <Stack direction="row" alignItems="center" spacing={0.5} sx={{ minWidth: 0 }}>
             <Typography
-              variant="subtitle1"
-              fontWeight={800}
-              fontStyle="italic"
+              variant="body2"
+              fontWeight={500}
+              fontStyle="normal"
               noWrap
-              sx={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}
+              sx={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", fontSize: 13 }}
             >
               {creator.displayName}
             </Typography>
@@ -89,15 +89,34 @@ export default function CreatorCard({ creator }: { creator: Creator }) {
               />
             </Box>
           </Stack>
-          <Typography variant="body2" color="text.secondary" noWrap sx={{ overflow: "hidden", textOverflow: "ellipsis" }}>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            noWrap
+            sx={{
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              display: "block",
+              mt: 0.25,
+              opacity: 0.65,
+              fontSize: 11,
+            }}
+          >
             @{creator.handle}
           </Typography>
           <Chip
             label={creator.category}
             size="small"
-            sx={{ mt: 1, height: 22 }}
+            sx={{
+              mt: 0.75,
+              height: 20,
+              fontSize: "0.65rem",
+              bgcolor: "rgba(249,115,22,0.12)",
+              color: "primary.main",
+              border: "none",
+            }}
           />
-          <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
+          <Typography variant="caption" display="block" sx={{ mt: 0.5, fontSize: 11, opacity: 0.55 }}>
             {formatCreatorAudienceLine(creator)}
           </Typography>
         </Box>
