@@ -92,7 +92,7 @@ export default function HeroBanner({
         position: "relative",
         width: "100%",
         overflow: "hidden",
-        [MQ_MAX_MOBILE]: { height: "50dvh", minHeight: 320 },
+        [MQ_MAX_MOBILE]: { height: "55dvh", minHeight: 380 },
         [MQ_MIN_DESKTOP]: { height: "70vh", minHeight: 420 },
       }}
     >

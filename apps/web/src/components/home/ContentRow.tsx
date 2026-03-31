@@ -43,7 +43,7 @@ export default function ContentRow({ title, seeAllHref, videos }: Props) {
         },
         {
           breakpoint: 600,
-          settings: { slidesToShow: cap(2), slidesToScroll: 1, centerMode: false },
+          settings: { slidesToShow: 1, slidesToScroll: 1, centerMode: false },
         },
       ],
     };

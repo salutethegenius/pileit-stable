@@ -202,61 +202,67 @@ export default function Navbar() {
           <IconButton color="inherit" size="small" aria-label="search">
             <SearchIcon />
           </IconButton>
-          <IconButton color="inherit" size="small" aria-label="notifications">
-            <NotificationsNoneIcon />
-          </IconButton>
+          {!isMobile && (
+            <IconButton color="inherit" size="small" aria-label="notifications">
+              <NotificationsNoneIcon />
+            </IconButton>
+          )}
           {authLoading ? (
-            <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, ml: 0.5 }}>
-              <Skeleton
-                variant="rounded"
-                width={56}
-                height={28}
-                sx={{ bgcolor: "rgba(255,255,255,0.08)" }}
-              />
-              <Skeleton
-                variant="rounded"
-                width={64}
-                height={28}
-                sx={{ bgcolor: "rgba(255,255,255,0.08)" }}
-              />
-            </Box>
+            !isMobile ? (
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, ml: 0.5 }}>
+                <Skeleton
+                  variant="rounded"
+                  width={56}
+                  height={28}
+                  sx={{ bgcolor: "rgba(255,255,255,0.08)" }}
+                />
+                <Skeleton
+                  variant="rounded"
+                  width={64}
+                  height={28}
+                  sx={{ bgcolor: "rgba(255,255,255,0.08)" }}
+                />
+              </Box>
+            ) : null
           ) : !user ? (
-            <>
-              <Button
-                component={Link}
-                href="/login"
-                variant="text"
-                sx={{
-                  color: "text.secondary",
-                  textTransform: "none",
-                  minWidth: 0,
-                  px: 0.75,
-                  py: 0.5,
-                  fontSize: 14,
-                  fontWeight: 600,
-                  whiteSpace: "nowrap",
-                }}
-              >
-                Log in
-              </Button>
-              <Button
-                component={Link}
-                href="/register"
-                variant="text"
-                color="primary"
-                sx={{
-                  textTransform: "none",
-                  minWidth: 0,
-                  px: 0.75,
-                  py: 0.5,
-                  fontSize: 14,
-                  fontWeight: 600,
-                  whiteSpace: "nowrap",
-                }}
-              >
-                Sign up
-              </Button>
-            </>
+            !isMobile ? (
+              <>
+                <Button
+                  component={Link}
+                  href="/login"
+                  variant="text"
+                  sx={{
+                    color: "text.secondary",
+                    textTransform: "none",
+                    minWidth: 0,
+                    px: 0.75,
+                    py: 0.5,
+                    fontSize: 14,
+                    fontWeight: 600,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  Log in
+                </Button>
+                <Button
+                  component={Link}
+                  href="/register"
+                  variant="text"
+                  color="primary"
+                  sx={{
+                    textTransform: "none",
+                    minWidth: 0,
+                    px: 0.75,
+                    py: 0.5,
+                    fontSize: 14,
+                    fontWeight: 600,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  Sign up
+                </Button>
+              </>
+            ) : null
           ) : (
             <>
               <Button
