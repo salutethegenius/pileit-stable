@@ -43,7 +43,7 @@ export default function ContentRow({ title, seeAllHref, videos }: Props) {
         },
         {
           breakpoint: 600,
-          settings: { slidesToShow: 1, slidesToScroll: 1, centerMode: false },
+          settings: { slidesToShow: cap(2), slidesToScroll: 1, centerMode: false },
         },
       ],
     };
@@ -52,7 +52,7 @@ export default function ContentRow({ title, seeAllHref, videos }: Props) {
   if (videos.length === 0) return null;
 
   return (
-    <Box sx={{ mb: 3 }}>
+    <Box sx={{ mb: { xs: 1.5, sm: 3 } }}>
       <SectionHeader
         title={title}
         seeAllHref={resolvedSeeAllHref ?? undefined}
@@ -78,7 +78,7 @@ export default function ContentRow({ title, seeAllHref, videos }: Props) {
       <Box sx={{ position: "relative", overflow: "hidden" }}>
         <Slider ref={sliderRef} {...settings}>
           {videos.map((v) => (
-            <Box key={v.id} sx={{ px: 1, pb: 0.5 }}>
+            <Box key={v.id} sx={{ px: { xs: 0.5, sm: 1 }, pb: 0.5 }}>
               <VideoItemWithHover video={v} />
             </Box>
           ))}

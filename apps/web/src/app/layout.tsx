@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Barlow_Condensed, DM_Sans } from "next/font/google";
 import ThemeRegistry from "@/components/ThemeRegistry";
 import { getDefaultOgImageUrl, getSiteUrl } from "@/lib/site";
@@ -31,6 +31,13 @@ function metadataBaseUrl(): URL {
   }
 }
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#ea580c",
+};
+
 export const metadata: Metadata = {
   metadataBase: metadataBaseUrl(),
   title: {
@@ -42,14 +49,22 @@ export const metadata: Metadata = {
   applicationName: "PileIt",
   robots: { index: true, follow: true },
   manifest: "/manifest.webmanifest",
-  /** Explicit favicon links (JSX in /public is not a valid icon — use SVG/ICO/PNG only). */
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },
       { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
     ],
     shortcut: "/favicon.svg",
+    apple: "/apple-icon",
   },
+  appleWebApp: {
+    capable: true,
+    title: "PileIt",
+    statusBarStyle: "black-translucent",
+  },
+  formatDetection: { telephone: false },
   openGraph: {
     type: "website",
     locale: "en_BS",

@@ -7,6 +7,7 @@ import CssBaseline from "@mui/material/CssBaseline";
 import { createPileItTheme } from "@/theme/theme";
 import AuthProvider from "@/providers/AuthProvider";
 import DetailModalProvider from "@/providers/DetailModalProvider";
+import RegisterSW from "@/components/RegisterSW";
 
 const theme = createPileItTheme();
 
@@ -22,6 +23,7 @@ export default function ThemeRegistry({
         <AuthProvider>
           <DetailModalProvider>{children}</DetailModalProvider>
         </AuthProvider>
+        <RegisterSW />
       </ThemeProvider>
     </AppRouterCacheProvider>
   );

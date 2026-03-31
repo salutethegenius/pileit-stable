@@ -8,15 +8,15 @@ const ogImageAbsolute = getDefaultOgImageUrl();
 
 export const metadata: Metadata = {
   title: {
-    absolute: "PileIt — Built for Bahamian creators",
+    absolute: "PileIt — Bahamian streaming & creators",
   },
   description:
-    "PileIt is built for Bahamian creators — stream, tip, subscribe with KemisPay, and join The Pile. Built in Nassau for The Bahamas.",
+    "Watch Bahamian creators, join The Pile, send tips, and subscribe. Streaming built for The Bahamas with KemisPay.",
   alternates: { canonical: `${siteUrl}/` },
   openGraph: {
-    title: "PileIt — Built for Bahamian creators",
+    title: "PileIt — Bahamian streaming & creators",
     description:
-      "Streaming built for Bahamian creators. Watch, tip, subscribe, and see for yourself.",
+      "Stream Bahamian creators — browse, subscribe, tip, and join The Pile. Built for The Bahamas.",
     url: `${siteUrl}/`,
     images: [
       {
@@ -29,9 +29,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "PileIt — Built for Bahamian creators",
+    title: "PileIt — Bahamian streaming & creators",
     description:
-      "Built for Bahamian creators — watch, tip, subscribe, and pile on.",
+      "Stream Bahamian creators — browse, subscribe, tip, and join The Pile.",
     images: [ogImageAbsolute],
   },
 };

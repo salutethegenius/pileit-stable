@@ -220,8 +220,8 @@ export default function HomePageClient() {
           maxWidth: 1440,
           mx: "auto",
           width: "100%",
-          px: { xs: 2, md: "48px" },
-          pt: { xs: 2, md: 5.5 },
+          px: { xs: 1, sm: 2, md: "48px" },
+          pt: { xs: 1, sm: 2, md: 5.5 },
         }}
       >
         {homepageSections.featured_creators ? (

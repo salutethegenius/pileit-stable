@@ -123,7 +123,7 @@ export default function VideoItemWithHover({ video }: Props) {
             src={IMG.cardThumb(src)}
             alt=""
             fill
-            sizes="(max-width: 600px) 100vw, (max-width: 900px) 50vw, 33vw"
+            sizes="(max-width: 600px) 50vw, (max-width: 900px) 50vw, 33vw"
             quality={70}
             loading="lazy"
             style={{
@@ -242,9 +242,9 @@ export default function VideoItemWithHover({ video }: Props) {
 
       <Stack
         direction="row"
-        spacing={1.25}
+        spacing={{ xs: 0.75, sm: 1.25 }}
         alignItems="flex-start"
-        sx={{ pt: 1.25, pb: 1, px: 1, pr: 0.5 }}
+        sx={{ pt: { xs: 0.75, sm: 1.25 }, pb: { xs: 0.5, sm: 1 }, px: { xs: 0.5, sm: 1 }, pr: { xs: 0.25, sm: 0.5 } }}
       >
         <Box
           component={Link}
@@ -256,8 +256,8 @@ export default function VideoItemWithHover({ video }: Props) {
             src={video.creator.avatarUrl ? IMG.avatar(video.creator.avatarUrl) : undefined}
             alt=""
             sx={{
-              width: 30,
-              height: 30,
+              width: { xs: 24, sm: 30 },
+              height: { xs: 24, sm: 30 },
               fontSize: "0.65rem",
               border: `1px solid ${video.creator.accentColor}`,
               bgcolor: "#1a0f05",
@@ -291,6 +291,7 @@ export default function VideoItemWithHover({ video }: Props) {
                   WebkitBoxOrient: "vertical",
                   overflow: "hidden",
                   lineHeight: titleLineHeight,
+                  fontSize: { xs: "0.8rem", sm: "1rem" },
                 }}
               >
                 {video.title}
