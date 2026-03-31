@@ -10,21 +10,20 @@ export default function SiteLayout({
   children: React.ReactNode;
 }) {
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", flexDirection: "column" }}>
+    <Box sx={{ minHeight: "100vh" }}>
       <Navbar />
       <Sidebar />
       <Box
         component="main"
         sx={{
-          flex: 1,
           display: "flex",
           flexDirection: "column",
-          minWidth: 0,
-          ml: { xs: 0, md: `${SIDEBAR_WIDTH}px` },
+          minHeight: "calc(100vh - 64px)",
+          pl: { xs: 0, md: `${SIDEBAR_WIDTH}px` },
         }}
       >
         {children}
-        <Box sx={{ height: 64, flexShrink: 0 }} aria-hidden />
+        <Box sx={{ flex: 1 }} />
         <SiteFooter />
       </Box>
       <GlobalOverlays />
