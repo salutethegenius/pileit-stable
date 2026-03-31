@@ -26,7 +26,7 @@ class ProductCreate(BaseModel):
 
 class CheckoutBody(BaseModel):
     product_id: str
-    quantity: int = 1
+    quantity: int = Field(1, ge=1, le=100)
 
 
 @router.post("/products", status_code=201)
@@ -96,15 +96,26 @@ async def checkout(
     seller = db.get(models.User, p.creator_id)
     if seller:
         assert_creator_can_receive_payments(seller, db)
+    if p.stock_count is not None and p.stock_count < body.quantity:
+        raise HTTPException(400, "Insufficient stock")
     total = float(p.price) * body.quantity
     platform_fee = total * settings.platform_fee_store
     cents = int(total * 100)
-    tx = await kemispay.charge_amount(
-        cents,
-        {"product_id": p.id, "buyer_id": user.id, "creator_id": p.creator_id},
-    )
+
+    # Decrement stock first, then charge. Roll back if payment fails.
     if p.stock_count is not None:
         p.stock_count -= body.quantity
+    db.flush()
+
+    try:
+        tx = await kemispay.charge_amount(
+            cents,
+            {"product_id": p.id, "buyer_id": user.id, "creator_id": p.creator_id},
+        )
+    except Exception:
+        db.rollback()
+        raise HTTPException(502, "Payment processing failed")
+
     db.commit()
     return {
         "kemispay_tx_id": tx,

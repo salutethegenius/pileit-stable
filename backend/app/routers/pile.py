@@ -47,7 +47,11 @@ def add_pile(
 
 
 @router.post("/{comment_id}/like")
-def like_pile(comment_id: str, db: Session = Depends(get_db)):
+def like_pile(
+    comment_id: str,
+    user: Annotated[models.User, Depends(get_current_user)],
+    db: Session = Depends(get_db),
+):
     c = db.get(models.PileComment, comment_id)
     if not c:
         raise HTTPException(404, "Not found")

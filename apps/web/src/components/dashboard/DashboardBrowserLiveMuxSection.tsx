@@ -89,7 +89,7 @@ export default function DashboardBrowserLiveMuxSection({
             egress_id: sess.egressId,
             room_name: sess.roomName,
           }),
-        }).catch(() => {});
+        }).catch((e) => console.warn("live-gateway stop failed", e));
       }
       sessionRef.current = null;
       await apiFetch(`/live-streams/${encodeURIComponent(videoId)}`, {

@@ -26,7 +26,7 @@ export default function CreatorsPageClient() {
         const mapped = rows.map(mapApiToCreator);
         if (mapped.length > 0) setCreators(mapped);
       })
-      .catch(() => {});
+      .catch((e) => console.warn("creators fetch failed", e));
   }, []);
 
   return (

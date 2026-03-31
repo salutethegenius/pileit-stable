@@ -70,7 +70,7 @@ export default function CreatorChannelClient({ creator, videos }: Props) {
       accessToken,
     })
       .then((r) => setFollowing(Boolean(r.following)))
-      .catch(() => {});
+      .catch((e) => console.warn("follow-status fetch failed", e));
   }, [accessToken, creator.id]);
 
   useEffect(() => {

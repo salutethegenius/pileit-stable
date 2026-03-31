@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from jose import JWTError
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -22,8 +22,8 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 class RegisterBody(BaseModel):
     email: EmailStr
-    password: str
-    display_name: str
+    password: str = Field(..., min_length=8, max_length=128)
+    display_name: str = Field(..., min_length=1, max_length=255)
 
 
 class LoginBody(BaseModel):
@@ -54,7 +54,7 @@ def _purge_expired_revoked(db: Session) -> None:
 @router.post("/register")
 def register(body: RegisterBody, db: Session = Depends(get_db)):
     if db.query(models.User).filter(models.User.email == body.email).first():
-        raise HTTPException(400, "Email already registered")
+        raise HTTPException(409, "Email already registered")
     user = models.User(
         email=body.email,
         password_hash=hash_password(body.password),
@@ -96,7 +96,6 @@ def refresh_token(body: RefreshBody, db: Session = Depends(get_db)):
     user = db.get(models.User, uid)
     if not user:
         raise HTTPException(401, "User not found")
-    db.commit()
     return TokenOut(
         access_token=create_access_token(user.id),
         refresh_token=create_refresh_token(user.id),
