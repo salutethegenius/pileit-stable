@@ -166,7 +166,6 @@ export default function ProfilePage() {
     heroUrlRaw,
     avatarFile,
     heroFile,
-    isCreator,
     canEditHero,
     refreshUser,
   ]);

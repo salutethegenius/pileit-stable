@@ -61,7 +61,8 @@ async def mux_webhook_receive(request: Request, db: Session = Depends(get_db)):
             logger.warning("Mux webhook signature verification failed")
             raise HTTPException(status_code=403, detail="Invalid signature")
     elif settings.mux_token_id:
-        logger.warning("Mux webhook received but mux_webhook_secret is not set — accepting unsigned")
+        logger.warning("Mux webhook rejected — mux_webhook_secret is not set")
+        raise HTTPException(status_code=403, detail="Webhook signing not configured")
 
     try:
         payload = json.loads(raw.decode("utf-8") or "{}")

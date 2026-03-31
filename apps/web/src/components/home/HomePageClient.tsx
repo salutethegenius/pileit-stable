@@ -19,9 +19,57 @@ import {
   type HomepageSectionsState,
 } from "@/lib/homepageSections";
 
-/** Mock / fallback: newest uploads first (API list is already newest-creators-first). */
+/** Newest published uploads first (by client createdAt, aligned with API created_at). */
 function byNewestUpload(a: PileItVideo, b: PileItVideo) {
   return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+}
+
+function byMostViewed(a: PileItVideo, b: PileItVideo) {
+  return b.viewCount - a.viewCount;
+}
+
+const NEW_RELEASES_ROW_LIMIT = 12;
+
+/**
+ * ~60% from newest uploads, ~40% from most viewed; dedupe by id; refill if the catalog is small.
+ */
+function blendNewReleasesRow(catalog: PileItVideo[], n: number): PileItVideo[] {
+  if (catalog.length === 0) return [];
+  const recent = [...catalog].sort(byNewestUpload);
+  const hot = [...catalog].sort(byMostViewed);
+  const slotRecent = Math.ceil(n * 0.6);
+  const ids = new Set<string>();
+  const out: PileItVideo[] = [];
+
+  for (const v of recent) {
+    if (out.length >= slotRecent) break;
+    if (!ids.has(v.id)) {
+      ids.add(v.id);
+      out.push(v);
+    }
+  }
+  for (const v of hot) {
+    if (out.length >= n) break;
+    if (!ids.has(v.id)) {
+      ids.add(v.id);
+      out.push(v);
+    }
+  }
+  for (const v of recent) {
+    if (out.length >= n) break;
+    if (!ids.has(v.id)) {
+      ids.add(v.id);
+      out.push(v);
+    }
+  }
+  for (const v of hot) {
+    if (out.length >= n) break;
+    if (!ids.has(v.id)) {
+      ids.add(v.id);
+      out.push(v);
+    }
+  }
+  return out.slice(0, n);
 }
 
 function byNewestCreatorAccount(a: Creator, b: Creator) {
@@ -139,8 +187,8 @@ export default function HomePageClient() {
     () => [...catalog].sort((a, b) => b.viewCount - a.viewCount),
     [catalog]
   );
-  const fresh = useMemo(
-    () => catalog.filter((v) => v.isNew),
+  const newReleases = useMemo(
+    () => blendNewReleasesRow(catalog, NEW_RELEASES_ROW_LIMIT),
     [catalog]
   );
   const free = useMemo(
@@ -167,32 +215,37 @@ export default function HomePageClient() {
           </Typography>
         </Box>
       ) : null}
-      <Box sx={{ maxWidth: 1440, mx: "auto", width: "100%", px: { xs: 2, md: 3, xl: 4 }, pt: 2 }}>
+      <Box
+        sx={{
+          maxWidth: 1440,
+          mx: "auto",
+          width: "100%",
+          px: { xs: 2, md: "48px" },
+          pt: { xs: 2, md: 5.5 },
+        }}
+      >
         {homepageSections.featured_creators ? (
           <CreatorRow title="Featured Creators" creators={featuredCreators} />
         ) : null}
         {homepageSections.trending ? (
           <Box id="trending" sx={{ scrollMarginTop: 88 }}>
-            <ContentRow title="Trending This Week" videos={trend} />
+            <ContentRow title="Trending This Week" seeAllHref="/browse#trending" videos={trend} />
           </Box>
         ) : null}
         {homepageSections.new_releases ? (
-          <ContentRow
-            title="New Releases"
-            videos={fresh.length ? fresh : catalog.slice(0, 6)}
-          />
+          <ContentRow title="New Releases" seeAllHref="/browse" videos={newReleases} />
         ) : null}
         {homepageSections.comedy ? (
-          <ContentRow title="Comedy" videos={inCategory("Comedy")} />
+          <ContentRow title="Comedy" seeAllHref="/browse" videos={inCategory("Comedy")} />
         ) : null}
         {homepageSections.music ? (
-          <ContentRow title="Music" videos={inCategory("Music")} />
+          <ContentRow title="Music" seeAllHref="/browse" videos={inCategory("Music")} />
         ) : null}
         {homepageSections.lifestyle ? (
-          <ContentRow title="Lifestyle" videos={inCategory("Lifestyle")} />
+          <ContentRow title="Lifestyle" seeAllHref="/browse" videos={inCategory("Lifestyle")} />
         ) : null}
         {homepageSections.free_to_watch ? (
-          <ContentRow title="Free to Watch" videos={free} />
+          <ContentRow title="Free to Watch" seeAllHref="/browse" videos={free} />
         ) : null}
       </Box>
     </Box>

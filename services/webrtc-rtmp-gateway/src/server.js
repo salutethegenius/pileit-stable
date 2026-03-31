@@ -116,7 +116,20 @@ async function fetchMuxRtmpFromApi(videoId) {
 }
 
 const app = express();
-app.use(cors({ origin: true }));
+const ALLOWED_ORIGINS = (process.env.CORS_ALLOWED_ORIGINS || "")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+app.use(
+  cors({
+    origin: ALLOWED_ORIGINS.length > 0
+      ? (origin, cb) => {
+          if (!origin || ALLOWED_ORIGINS.includes(origin)) cb(null, true);
+          else cb(new Error("CORS blocked"));
+        }
+      : true,
+  }),
+);
 app.use(express.json({ limit: "1mb" }));
 
 app.get("/health", (_req, res) => {
@@ -197,7 +210,8 @@ app.post("/v1/browser-live/start", async (req, res) => {
     });
   } catch (e) {
     console.error("[start]", e);
-    return res.status(400).json({ detail: e.message || "start failed" });
+    const status = e.message?.includes("token") || e.code === "ERR_JWT_EXPIRED" || e.code === "ERR_JWS_INVALID" ? 401 : 400;
+    return res.status(status).json({ detail: e.message || "start failed" });
   }
 });
 
@@ -239,7 +253,8 @@ app.post("/v1/browser-live/stop", async (req, res) => {
     return res.json({ ok: true });
   } catch (e) {
     console.error("[stop]", e);
-    return res.status(400).json({ detail: e.message || "stop failed" });
+    const status = e.message?.includes("token") || e.code === "ERR_JWT_EXPIRED" || e.code === "ERR_JWS_INVALID" ? 401 : 400;
+    return res.status(status).json({ detail: e.message || "stop failed" });
   }
 });
 

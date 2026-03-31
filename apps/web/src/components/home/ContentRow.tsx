@@ -3,22 +3,22 @@
 import { useMemo, useRef } from "react";
 import Slider, { type Settings } from "react-slick";
 import Box from "@mui/material/Box";
-import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import Link from "next/link";
 import type { PileItVideo } from "@/types/content";
 import VideoItemWithHover from "./VideoItemWithHover";
+import SectionHeader from "./SectionHeader";
 
 type Props = {
   title: string;
-  seeAllHref?: string;
+  /** Defaults to /browse when omitted; pass `null` to hide “See all” */
+  seeAllHref?: string | null;
   videos: PileItVideo[];
 };
 
 export default function ContentRow({ title, seeAllHref, videos }: Props) {
+  const resolvedSeeAllHref = seeAllHref === undefined ? "/browse" : seeAllHref;
   const sliderRef = useRef<Slider>(null);
   const n = videos.length;
   const settings: Settings = useMemo(() => {
@@ -53,42 +53,28 @@ export default function ContentRow({ title, seeAllHref, videos }: Props) {
 
   return (
     <Box sx={{ mb: 3 }}>
-      <Stack
-        direction="row"
-        alignItems="center"
-        justifyContent="space-between"
-        sx={{ mb: 1.5, pr: 1 }}
-      >
-        <Typography component="h2" variant="h6" fontWeight={800} sx={{ fontStyle: "normal" }}>
-          {title}
-        </Typography>
-        <Stack direction="row" alignItems="center" spacing={1}>
-          {seeAllHref && (
-            <Typography
-              component={Link}
-              href={seeAllHref}
-              variant="body2"
-              sx={{ color: "primary.main", fontWeight: 600 }}
+      <SectionHeader
+        title={title}
+        seeAllHref={resolvedSeeAllHref ?? undefined}
+        endActions={
+          <>
+            <IconButton
+              size="small"
+              onClick={() => sliderRef.current?.slickPrev()}
+              aria-label="Previous"
             >
-              See All →
-            </Typography>
-          )}
-          <IconButton
-            size="small"
-            onClick={() => sliderRef.current?.slickPrev()}
-            aria-label="Previous"
-          >
-            <ChevronLeftIcon />
-          </IconButton>
-          <IconButton
-            size="small"
-            onClick={() => sliderRef.current?.slickNext()}
-            aria-label="Next"
-          >
-            <ChevronRightIcon />
-          </IconButton>
-        </Stack>
-      </Stack>
+              <ChevronLeftIcon />
+            </IconButton>
+            <IconButton
+              size="small"
+              onClick={() => sliderRef.current?.slickNext()}
+              aria-label="Next"
+            >
+              <ChevronRightIcon />
+            </IconButton>
+          </>
+        }
+      />
       <Box sx={{ position: "relative", overflow: "hidden" }}>
         <Slider ref={sliderRef} {...settings}>
           {videos.map((v) => (

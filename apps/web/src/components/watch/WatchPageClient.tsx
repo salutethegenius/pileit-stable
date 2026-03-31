@@ -28,7 +28,7 @@ type Props = { video: PileItVideo };
 
 export default function WatchPageClient({ video }: Props) {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"), { noSsr: true });
   const [tipOpen, setTipOpen] = useState(false);
   const [subOpen, setSubOpen] = useState(false);
   const [pileSheet, setPileSheet] = useState(false);

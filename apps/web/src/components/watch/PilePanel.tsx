@@ -34,7 +34,7 @@ export default function PilePanel({
   onMobileClose,
 }: Props) {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"), { noSsr: true });
   const { accessToken } = useAuth();
   const [tab, setTab] = useState(0);
   const [comments, setComments] = useState<PileCommentDto[]>([]);

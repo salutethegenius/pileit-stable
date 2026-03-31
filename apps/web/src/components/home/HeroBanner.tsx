@@ -146,7 +146,7 @@ export default function HeroBanner({
             pb: "calc(16px + env(safe-area-inset-bottom, 0px))",
           },
           [MQ_MIN_DESKTOP]: {
-            p: 5,
+            px: "48px",
             pt: 5,
             pb: "calc(48px + env(safe-area-inset-bottom, 0px))",
           },
@@ -277,6 +277,26 @@ export default function HeroBanner({
             >
               {creator.bio?.trim() || "Now featured on PileIt. Tap in and follow this creator."}
             </Typography>
+            <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 3 }}>
+              <Avatar
+                src={creator.avatarUrl ? IMG.avatar(creator.avatarUrl) : undefined}
+                alt={`${creator.displayName} avatar`}
+                sx={{ width: 48, height: 48 }}
+              />
+              <Box>
+                <Stack direction="row" alignItems="center" spacing={0.5} flexWrap="wrap">
+                  <Typography fontWeight={700}>{creator.displayName}</Typography>
+                  <CreatorBadges
+                    verified={creator.verified}
+                    monetizationEligible={creator.monetizationEligible}
+                    size="medium"
+                  />
+                </Stack>
+                <Typography variant="caption" color="text.secondary">
+                  {formatCreatorAudienceLine(creator)}
+                </Typography>
+              </Box>
+            </Stack>
             <Stack sx={btnStackSx}>
               <Button
                 component={Link}
@@ -306,22 +326,6 @@ export default function HeroBanner({
                   Watch Latest
                 </Button>
               ) : null}
-            </Stack>
-            <Stack direction="row" spacing={1.5} alignItems="center">
-              <Avatar src={creator.avatarUrl || undefined} alt={`${creator.displayName} avatar`} sx={{ width: 48, height: 48 }} />
-              <Box>
-                <Stack direction="row" alignItems="center" spacing={0.5} flexWrap="wrap">
-                  <Typography fontWeight={700}>{creator.displayName}</Typography>
-                  <CreatorBadges
-                    verified={creator.verified}
-                    monetizationEligible={creator.monetizationEligible}
-                    size="medium"
-                  />
-                </Stack>
-                <Typography variant="caption" color="text.secondary">
-                  {formatCreatorAudienceLine(creator)}
-                </Typography>
-              </Box>
             </Stack>
           </>
         ) : (
@@ -364,6 +368,30 @@ export default function HeroBanner({
             >
               {video!.description}
             </Typography>
+            <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 3 }}>
+              <Avatar
+                src={
+                  video!.creator.avatarUrl
+                    ? IMG.avatar(video!.creator.avatarUrl)
+                    : undefined
+                }
+                alt={`${video!.creator.displayName} avatar`}
+                sx={{ width: 48, height: 48 }}
+              />
+              <Box>
+                <Stack direction="row" alignItems="center" spacing={0.5} flexWrap="wrap">
+                  <Typography fontWeight={700}>{video!.creator.displayName}</Typography>
+                  <CreatorBadges
+                    verified={video!.creator.verified}
+                    monetizationEligible={video!.creator.monetizationEligible}
+                    size="medium"
+                  />
+                </Stack>
+                <Typography variant="caption" color="text.secondary">
+                  {formatCreatorAudienceLine(video!.creator)}
+                </Typography>
+              </Box>
+            </Stack>
             <Stack sx={btnStackSx}>
               <Button
                 component={Link}
@@ -391,30 +419,6 @@ export default function HeroBanner({
               >
                 More Info
               </Button>
-            </Stack>
-            <Stack direction="row" spacing={1.5} alignItems="center">
-              <Avatar
-                src={
-                  video!.creator.avatarUrl
-                    ? IMG.avatar(video!.creator.avatarUrl)
-                    : undefined
-                }
-                alt={`${video!.creator.displayName} avatar`}
-                sx={{ width: 48, height: 48 }}
-              />
-              <Box>
-                <Stack direction="row" alignItems="center" spacing={0.5} flexWrap="wrap">
-                  <Typography fontWeight={700}>{video!.creator.displayName}</Typography>
-                  <CreatorBadges
-                    verified={video!.creator.verified}
-                    monetizationEligible={video!.creator.monetizationEligible}
-                    size="medium"
-                  />
-                </Stack>
-                <Typography variant="caption" color="text.secondary">
-                  {formatCreatorAudienceLine(video!.creator)}
-                </Typography>
-              </Box>
             </Stack>
           </>
         )}

@@ -2,8 +2,6 @@
 
 import Link from "next/link";
 import Box from "@mui/material/Box";
-import Container from "@mui/material/Container";
-import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
 import Divider from "@mui/material/Divider";
 import PileItLockup from "@/components/brand/PileItLockup";
@@ -45,14 +43,30 @@ export default function SiteFooter() {
     <Box
       component="footer"
       sx={{
-        mt: "auto",
         bgcolor: "#0a0a0a",
-        borderTop: `1px solid ${PILEIT_THEME.border}`,
+        borderTop: `0.5px solid ${PILEIT_THEME.border}`,
       }}
     >
-      <Container maxWidth="lg" sx={{ px: { xs: 2, md: 3 }, py: { xs: 4, md: 5 } }}>
-        <Grid container spacing={{ xs: 4, md: 3 }}>
-          <Grid item xs={12} md={3}>
+      <Box
+        sx={{
+          maxWidth: 1440,
+          mx: "auto",
+          width: "100%",
+          px: { xs: 2, md: "48px" },
+          py: { xs: 4, md: 6 },
+        }}
+      >
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "1fr",
+              md: "minmax(0, 1.8fr) repeat(3, minmax(0, 1fr))",
+            },
+            gap: { xs: 4, md: 4 },
+          }}
+        >
+          <Box sx={{ minWidth: 0 }}>
             <Link href="/browse" style={{ display: "inline-flex", alignItems: "center" }}>
               <PileItLockup markSize={36} textSize={24} />
             </Link>
@@ -62,7 +76,7 @@ export default function SiteFooter() {
                 mt: 2,
                 color: PILEIT_THEME.textSecondary,
                 lineHeight: 1.6,
-                maxWidth: 280,
+                maxWidth: 320,
               }}
             >
               The home of Bahamian creators. Watch, tip, shop, and pile on.
@@ -73,9 +87,9 @@ export default function SiteFooter() {
                 KemisPay
               </Box>
             </Typography>
-          </Grid>
+          </Box>
 
-          <Grid item xs={6} sm={4} md={3}>
+          <Box sx={{ minWidth: 0 }}>
             <Typography component="h2" sx={headingSx}>
               PLATFORM
             </Typography>
@@ -83,9 +97,9 @@ export default function SiteFooter() {
             <FootLink href="/creators">Creators</FootLink>
             <FootLink href="/live">Live</FootLink>
             <FootLink href="/browse#trending">Trending</FootLink>
-          </Grid>
+          </Box>
 
-          <Grid item xs={6} sm={4} md={3}>
+          <Box sx={{ minWidth: 0 }}>
             <Typography component="h2" sx={headingSx}>
               CREATORS
             </Typography>
@@ -93,9 +107,9 @@ export default function SiteFooter() {
             <FootLink href="/dashboard">Creator Dashboard</FootLink>
             <FootLink href="/dashboard">Monetization</FootLink>
             <FootLink href="/creators">Creator Guidelines</FootLink>
-          </Grid>
+          </Box>
 
-          <Grid item xs={12} sm={4} md={3}>
+          <Box sx={{ minWidth: 0 }}>
             <Typography component="h2" sx={headingSx}>
               COMPANY
             </Typography>
@@ -103,8 +117,8 @@ export default function SiteFooter() {
             <FootLink href="/terms#kemis">The Kemis Group</FootLink>
             <FootLink href="/privacy">Privacy Policy</FootLink>
             <FootLink href="/terms">Terms of Service</FootLink>
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
 
         <Divider sx={{ my: 4, borderColor: PILEIT_THEME.border }} />
 
@@ -115,11 +129,13 @@ export default function SiteFooter() {
             alignItems: { xs: "flex-start", sm: "center" },
             justifyContent: "space-between",
             gap: 1.5,
+            pb: { xs: 1, md: 0 },
           }}
         >
           <Typography
             variant="caption"
             sx={{ color: PILEIT_THEME.textDim, lineHeight: 1.6 }}
+            suppressHydrationWarning
           >
             © {new Date().getFullYear()} PileIt · The Kemis Group of Companies · Bahamas
           </Typography>
@@ -136,7 +152,7 @@ export default function SiteFooter() {
             pileit.app
           </Typography>
         </Box>
-      </Container>
+      </Box>
     </Box>
   );
 }

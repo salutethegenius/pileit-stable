@@ -58,6 +58,7 @@ class Settings(BaseSettings):
         default="",
         validation_alias=AliasChoices(
             "BUCKET",
+            "AWS_S3_BUCKET_NAME",
             "PILEIT_S3_BUCKET",
         ),
     )
@@ -65,6 +66,7 @@ class Settings(BaseSettings):
         default="",
         validation_alias=AliasChoices(
             "ENDPOINT",
+            "AWS_ENDPOINT_URL",
             "S3_ENDPOINT",
             "PILEIT_S3_ENDPOINT",
         ),
@@ -73,6 +75,8 @@ class Settings(BaseSettings):
         default="auto",
         validation_alias=AliasChoices(
             "REGION",
+            "AWS_DEFAULT_REGION",
+            "AWS_REGION",
             "S3_REGION",
             "PILEIT_S3_REGION",
         ),

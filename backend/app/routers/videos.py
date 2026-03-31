@@ -420,7 +420,14 @@ def list_videos(
     category: str | None = None,
     locked: bool | None = None,
     trending: bool | None = None,
+    sort: str | None = None,
 ):
+    """
+    sort: browse | recent | trending (optional). Explicit sort wins over legacy trending=true.
+    - browse: newest creator accounts first, then newest video per creator (default).
+    - recent: global newest published uploads (Video.created_at).
+    - trending: by view_count descending.
+    """
     q = (
         db.query(models.Video)
         .join(models.User, models.User.id == models.Video.creator_id)
@@ -436,11 +443,27 @@ def list_videos(
         q = q.filter(models.Video.category == category)
     if locked is not None:
         q = q.filter(models.Video.is_locked == locked)
-    if not trending:
+
+    raw_sort = (sort or "").strip().lower()
+    if raw_sort and raw_sort not in ("browse", "recent", "trending"):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid sort (use browse, recent, or trending)",
+        )
+    if raw_sort:
+        mode = raw_sort
+    elif trending:
+        mode = "trending"
+    else:
+        mode = "browse"
+
+    if mode == "recent":
+        q = q.order_by(desc(models.Video.created_at))
+    elif mode == "browse":
         # Home / browse: surface newest creators first, then newest uploads per creator.
         q = q.order_by(desc(models.User.created_at), desc(models.Video.created_at))
     rows = q.all()
-    if trending:
+    if mode == "trending":
         rows = sorted(rows, key=lambda x: x.view_count, reverse=True)
     out = []
     for v in rows:
@@ -693,8 +716,11 @@ def post_chat(
 ):
     if not body.body.strip():
         raise HTTPException(400, "Empty message")
+    v = db.get(models.Video, video_id.strip())
+    if not v:
+        raise HTTPException(404, "Video not found")
     m = models.LiveChatMessage(
-        video_id=video_id, user_id=user.id, body=body.body.strip()
+        video_id=v.id, user_id=user.id, body=body.body.strip()
     )
     db.add(m)
     db.commit()
