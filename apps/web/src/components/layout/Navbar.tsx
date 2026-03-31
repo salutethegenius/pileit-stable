@@ -48,7 +48,7 @@ export default function Navbar() {
         zIndex: (t) => t.zIndex.drawer + 1,
         backgroundColor: "rgba(20,20,20,0.92)",
         backdropFilter: "blur(20px)",
-        borderBottom: `1px solid ${PILEIT_THEME.border}`,
+        borderBottom: "none",
       }}
     >
       <Toolbar sx={{ minHeight: 64, px: { xs: 2, md: 3 }, gap: 1.5 }}>
