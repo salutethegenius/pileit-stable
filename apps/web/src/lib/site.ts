@@ -2,7 +2,7 @@
  * Canonical public site origin for metadata, sitemap, robots, and absolute og:image URLs.
  *
  * Do not use VERCEL_URL here: preview deployment URLs often return HTML to social crawlers
- * (deployment protection, auth splash), which breaks og:image with “invalid content type”.
+ * (deployment protection, auth splash), which breaks og:image with "invalid content type".
  * Set NEXT_PUBLIC_SITE_URL on Vercel (e.g. https://pileit.app) so previews still emit valid OG URLs.
  */
 const PRODUCTION_DEFAULT_ORIGIN = "https://pileit.app";

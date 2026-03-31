@@ -5,7 +5,7 @@ export const runtime = "edge";
 export const size = { width: 180, height: 180 };
 export const contentType = "image/png";
 
-/** Stack + play mark (aligned with `icon.svg` / brand), not a letter “P”. */
+/** Stack + play mark (aligned with `icon.svg` / brand), not a letter "P". */
 export default function AppleIcon() {
   return new ImageResponse(
     (

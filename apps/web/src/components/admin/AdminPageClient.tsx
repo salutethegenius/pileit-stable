@@ -430,7 +430,7 @@ export default function AdminPageClient() {
       return `${c.video_title ?? "Video"} · ${snippet}`;
     }
     if (r.target_type === "live_chat") {
-      return `${c.video_title ?? "Video"} · “${(c.message_preview ?? "").slice(0, 100)}”`;
+      return `${c.video_title ?? "Video"} · "${(c.message_preview ?? "").slice(0, 100)}"`;
     }
     return r.target_id;
   };
