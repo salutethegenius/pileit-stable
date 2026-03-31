@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import LandingPageClient from "@/components/landing/LandingPageClient";
+import HomePageClient from "@/components/home/HomePageClient";
 import JsonLd from "@/components/seo/JsonLd";
 import { getDefaultOgImageUrl, getSiteUrl } from "@/lib/site";
 
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function LandingPage() {
+export default function HomePage() {
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
@@ -59,22 +59,13 @@ export default function LandingPage() {
           "PileIt is part of the Kemis Group — digital infrastructure and creator tools for The Bahamas.",
         areaServed: "BS",
       },
-      {
-        "@type": "WebPage",
-        "@id": `${siteUrl}/#landing`,
-        url: siteUrl,
-        name: "PileIt — Built for Bahamian creators",
-        isPartOf: { "@id": `${siteUrl}/#website` },
-        description:
-          "Landing page for PileIt — built for Bahamian creators. Streaming, KemisPay, The Pile, and more.",
-      },
     ],
   };
 
   return (
     <>
       <JsonLd data={jsonLd} />
-      <LandingPageClient />
+      <HomePageClient />
     </>
   );
 }

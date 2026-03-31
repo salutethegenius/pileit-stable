@@ -12,13 +12,13 @@ import SectionHeader from "./SectionHeader";
 
 type Props = {
   title: string;
-  /** Defaults to /browse when omitted; pass `null` to hide “See all” */
+  /** Defaults to / when omitted; pass `null` to hide “See all” */
   seeAllHref?: string | null;
   videos: PileItVideo[];
 };
 
 export default function ContentRow({ title, seeAllHref, videos }: Props) {
-  const resolvedSeeAllHref = seeAllHref === undefined ? "/browse" : seeAllHref;
+  const resolvedSeeAllHref = seeAllHref === undefined ? “/” : seeAllHref;
   const sliderRef = useRef<Slider>(null);
   const n = videos.length;
   const settings: Settings = useMemo(() => {

@@ -229,23 +229,23 @@ export default function HomePageClient() {
         ) : null}
         {homepageSections.trending ? (
           <Box id="trending" sx={{ scrollMarginTop: 88 }}>
-            <ContentRow title="Trending This Week" seeAllHref="/browse#trending" videos={trend} />
+            <ContentRow title="Trending This Week" seeAllHref="/#trending" videos={trend} />
           </Box>
         ) : null}
         {homepageSections.new_releases ? (
-          <ContentRow title="New Releases" seeAllHref="/browse" videos={newReleases} />
+          <ContentRow title="New Releases" seeAllHref="/" videos={newReleases} />
         ) : null}
         {homepageSections.comedy ? (
-          <ContentRow title="Comedy" seeAllHref="/browse" videos={inCategory("Comedy")} />
+          <ContentRow title="Comedy" seeAllHref="/" videos={inCategory("Comedy")} />
         ) : null}
         {homepageSections.music ? (
-          <ContentRow title="Music" seeAllHref="/browse" videos={inCategory("Music")} />
+          <ContentRow title="Music" seeAllHref="/" videos={inCategory("Music")} />
         ) : null}
         {homepageSections.lifestyle ? (
-          <ContentRow title="Lifestyle" seeAllHref="/browse" videos={inCategory("Lifestyle")} />
+          <ContentRow title="Lifestyle" seeAllHref="/" videos={inCategory("Lifestyle")} />
         ) : null}
         {homepageSections.free_to_watch ? (
-          <ContentRow title="Free to Watch" seeAllHref="/browse" videos={free} />
+          <ContentRow title="Free to Watch" seeAllHref="/" videos={free} />
         ) : null}
       </Box>
     </Box>
