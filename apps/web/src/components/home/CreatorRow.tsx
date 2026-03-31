@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Slider, { type Settings } from "react-slick";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
@@ -23,10 +23,9 @@ function slidesToShowForWidth(width: number, n: number) {
 export default function CreatorRow({ title, creators }: Props) {
   const sliderRef = useRef<Slider>(null);
   const n = creators.length;
-  /** react-slick's `responsive` only updates on media *changes*, not on first paint — default stayed at 4 on mobile. */
-  const [slidesToShow, setSlidesToShow] = useState(1);
+  const [slidesToShow, setSlidesToShow] = useState<number | null>(null);
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (n === 0) return;
     const update = () => setSlidesToShow(slidesToShowForWidth(window.innerWidth, n));
     update();
@@ -34,14 +33,15 @@ export default function CreatorRow({ title, creators }: Props) {
     return () => window.removeEventListener("resize", update);
   }, [n]);
 
-  const slidesToScroll = slidesToShow <= 1 ? 1 : Math.min(2, slidesToShow);
+  const resolvedSlides = slidesToShow ?? 1;
+  const slidesToScroll = resolvedSlides <= 1 ? 1 : Math.min(2, resolvedSlides);
 
   const settings: Settings = {
     className: "pileit-creator-row-slider",
     speed: 450,
     arrows: false,
     infinite: false,
-    slidesToShow,
+    slidesToShow: resolvedSlides,
     slidesToScroll,
   };
 

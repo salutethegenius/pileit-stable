@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Slider, { type Settings } from "react-slick";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
@@ -29,9 +29,9 @@ export default function ContentRow({ title, seeAllHref, videos }: Props) {
   const sliderRef = useRef<Slider>(null);
   const n = videos.length;
 
-  const [slidesToShow, setSlidesToShow] = useState(1);
+  const [slidesToShow, setSlidesToShow] = useState<number | null>(null);
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (n === 0) return;
     const update = () => setSlidesToShow(slidesToShowForWidth(window.innerWidth, n));
     update();
@@ -39,7 +39,8 @@ export default function ContentRow({ title, seeAllHref, videos }: Props) {
     return () => window.removeEventListener("resize", update);
   }, [n]);
 
-  const slidesToScroll = slidesToShow <= 1 ? 1 : Math.min(3, slidesToShow);
+  const resolvedSlides = slidesToShow ?? 1;
+  const slidesToScroll = resolvedSlides <= 1 ? 1 : Math.min(3, resolvedSlides);
 
   const settings: Settings = {
     className: "pileit-content-row-slider",
@@ -47,7 +48,7 @@ export default function ContentRow({ title, seeAllHref, videos }: Props) {
     arrows: false,
     infinite: false,
     centerMode: false,
-    slidesToShow,
+    slidesToShow: resolvedSlides,
     slidesToScroll,
   };
 

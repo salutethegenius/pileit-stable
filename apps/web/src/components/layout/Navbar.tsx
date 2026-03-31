@@ -34,7 +34,7 @@ function canOpenPublicChannel(user: {
 
 export default function Navbar() {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"), { noSsr: true });
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const { user, logout, loading: authLoading } = useAuth();
   const [anchor, setAnchor] = useState<null | HTMLElement>(null);
   const [mobileOpen, setMobileOpen] = useState<null | HTMLElement>(null);
