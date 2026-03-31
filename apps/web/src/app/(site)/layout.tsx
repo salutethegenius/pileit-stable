@@ -1,7 +1,6 @@
 import Box from "@mui/material/Box";
 import Navbar from "@/components/layout/Navbar";
-import Sidebar from "@/components/layout/Sidebar";
-import { SIDEBAR_WIDTH } from "@/components/layout/Sidebar";
+import Sidebar, { SIDEBAR_WIDTH } from "@/components/layout/Sidebar";
 import SiteFooter from "@/components/layout/SiteFooter";
 import GlobalOverlays from "@/components/layout/GlobalOverlays";
 
