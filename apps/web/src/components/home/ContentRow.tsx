@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import Slider, { type Settings } from "react-slick";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
@@ -17,37 +17,39 @@ type Props = {
   videos: PileItVideo[];
 };
 
+function slidesToShowForWidth(width: number, n: number) {
+  const cap = (max: number) => Math.max(1, Math.min(max, n));
+  if (width < 600) return 1;
+  if (width < 900) return cap(2);
+  return cap(3);
+}
+
 export default function ContentRow({ title, seeAllHref, videos }: Props) {
   const resolvedSeeAllHref = seeAllHref === undefined ? "/" : seeAllHref;
   const sliderRef = useRef<Slider>(null);
   const n = videos.length;
-  const settings: Settings = useMemo(() => {
-    const cap = (max: number) => Math.max(1, Math.min(max, n));
-    return {
-      className: "pileit-content-row-slider",
-      speed: 450,
-      arrows: false,
-      infinite: false,
-      centerMode: false,
-      /* YouTube-style: three larger tiles per row on desktop */
-      slidesToShow: cap(3),
-      slidesToScroll: Math.min(3, n),
-      responsive: [
-        {
-          breakpoint: 900,
-          settings: {
-            slidesToShow: cap(2),
-            slidesToScroll: 1,
-            centerMode: false,
-          },
-        },
-        {
-          breakpoint: 600,
-          settings: { slidesToShow: 1, slidesToScroll: 1, centerMode: false },
-        },
-      ],
-    };
+
+  const [slidesToShow, setSlidesToShow] = useState(1);
+
+  useLayoutEffect(() => {
+    if (n === 0) return;
+    const update = () => setSlidesToShow(slidesToShowForWidth(window.innerWidth, n));
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
   }, [n]);
+
+  const slidesToScroll = slidesToShow <= 1 ? 1 : Math.min(3, slidesToShow);
+
+  const settings: Settings = {
+    className: "pileit-content-row-slider",
+    speed: 450,
+    arrows: false,
+    infinite: false,
+    centerMode: false,
+    slidesToShow,
+    slidesToScroll,
+  };
 
   if (videos.length === 0) return null;
 
