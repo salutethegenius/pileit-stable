@@ -203,7 +203,6 @@ export default function Sidebar() {
         top: 64,
         overflowY: "auto",
         overflowX: "hidden",
-        borderRight: `1px solid ${PILEIT_THEME.border}`,
         bgcolor: PILEIT_THEME.bg,
         py: 1.5,
         px: 1,
