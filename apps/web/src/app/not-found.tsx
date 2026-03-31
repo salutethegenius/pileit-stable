@@ -31,7 +31,7 @@ export default function NotFound() {
         That page or creator does not exist.
       </p>
       <Link
-        href="/browse"
+        href="/"
         style={{
           display: "inline-block",
           padding: "10px 24px",

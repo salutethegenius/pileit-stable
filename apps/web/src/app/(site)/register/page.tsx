@@ -74,7 +74,7 @@ function RegisterForm() {
     setLoading(true);
     try {
       await register(email, password, displayName);
-      const destination = nextPath !== "/" ? nextPath : "/browse";
+      const destination = nextPath && nextPath !== "/" ? nextPath : "/";
       router.push(destination);
     } catch (e) {
       setErr(registerErrorMessage(e));
@@ -162,7 +162,7 @@ function RegisterForm() {
           </Link>
         </Typography>
         <Typography sx={{ mt: 1 }}>
-          <Link href="/browse" style={{ color: "#999" }}>
+          <Link href="/" style={{ color: "#999" }}>
             ← Back to Browse
           </Link>
         </Typography>

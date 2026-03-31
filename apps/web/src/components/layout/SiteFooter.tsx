@@ -67,7 +67,7 @@ export default function SiteFooter() {
           }}
         >
           <Box sx={{ minWidth: 0 }}>
-            <Link href="/browse" style={{ display: "inline-flex", alignItems: "center" }}>
+            <Link href="/" style={{ display: "inline-flex", alignItems: "center" }}>
               <PileItLockup markSize={36} textSize={24} />
             </Link>
             <Typography
@@ -93,7 +93,7 @@ export default function SiteFooter() {
             <Typography component="h2" sx={headingSx}>
               PLATFORM
             </Typography>
-            <FootLink href="/browse">Browse</FootLink>
+            <FootLink href="/">Browse</FootLink>
             <FootLink href="/creators">Creators</FootLink>
             <FootLink href="/live">Live</FootLink>
             <FootLink href="/browse#trending">Trending</FootLink>

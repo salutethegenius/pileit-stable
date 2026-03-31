@@ -220,7 +220,7 @@ export default function HeroBanner({
               </Button>
               <Button
                 component={Link}
-                href={video ? `/watch/${encodeURIComponent(video.id)}` : "/browse#trending"}
+                href={video ? `/watch/${encodeURIComponent(video.id)}` : "/#trending"}
                 variant="outlined"
                 size="large"
                 startIcon={<PlayArrowIcon />}

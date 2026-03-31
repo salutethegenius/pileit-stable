@@ -46,7 +46,7 @@ function LoginForm() {
     setLoading(true);
     try {
       await login(email, password);
-      const destination = nextPath !== "/" ? nextPath : "/browse";
+      const destination = nextPath && nextPath !== "/" ? nextPath : "/";
       router.push(destination);
     } catch {
       setErr("Invalid email or password.");
@@ -126,7 +126,7 @@ function LoginForm() {
           </Link>
         </Typography>
         <Typography sx={{ mt: 1 }}>
-          <Link href="/browse" style={{ color: "#999" }}>
+          <Link href="/" style={{ color: "#999" }}>
             ← Back to Browse
           </Link>
         </Typography>
