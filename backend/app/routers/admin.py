@@ -289,15 +289,19 @@ def stats(
     _: Annotated[models.User, Depends(require_admin)],
     db: Session = Depends(get_db),
 ):
+    total_tips = (
+        db.query(func.coalesce(func.sum(models.Tip.amount), 0)).scalar()
+    )
+    total_views = (
+        db.query(func.coalesce(func.sum(models.Video.view_count), 0)).scalar()
+    )
     return {
         "total_users": db.query(models.User).count(),
         "total_creators": db.query(models.User)
         .filter(models.User.account_type == "creator")
         .count(),
-        "total_tips": float(
-            sum(float(t.amount) for t in db.query(models.Tip).all()) or 0
-        ),
-        "total_views": sum(v.view_count for v in db.query(models.Video).all()),
+        "total_tips": float(total_tips),
+        "total_views": int(total_views),
     }
 
 
@@ -307,47 +311,51 @@ def list_creators_admin(
     db: Session = Depends(get_db),
 ):
     """All creator accounts with email (admin-only)."""
+    video_counts = (
+        db.query(
+            models.Video.creator_id,
+            func.count(models.Video.id).label("cnt"),
+        )
+        .filter(models.Video.status == "published")
+        .group_by(models.Video.creator_id)
+        .subquery()
+    )
+    sub_counts = (
+        db.query(
+            models.Subscription.creator_id,
+            func.count(models.Subscription.id).label("cnt"),
+        )
+        .filter(models.Subscription.status == "active")
+        .group_by(models.Subscription.creator_id)
+        .subquery()
+    )
     q = (
-        db.query(models.User)
+        db.query(
+            models.User,
+            models.CreatorProfile,
+            func.coalesce(video_counts.c.cnt, 0).label("video_count"),
+            func.coalesce(sub_counts.c.cnt, 0).label("subscriber_count"),
+        )
         .join(models.CreatorProfile, models.CreatorProfile.user_id == models.User.id)
+        .outerjoin(video_counts, video_counts.c.creator_id == models.User.id)
+        .outerjoin(sub_counts, sub_counts.c.creator_id == models.User.id)
         .filter(models.User.account_type.in_(("creator", "admin")))
     )
-    out = []
-    for u in q.all():
-        prof = u.creator_profile
-        video_count = (
-            db.query(func.count(models.Video.id))
-            .filter(
-                models.Video.creator_id == u.id,
-                models.Video.status == "published",
-            )
-            .scalar()
-            or 0
-        )
-        sub_count = (
-            db.query(func.count(models.Subscription.id))
-            .filter(
-                models.Subscription.creator_id == u.id,
-                models.Subscription.status == "active",
-            )
-            .scalar()
-            or 0
-        )
-        out.append(
-            {
-                "id": u.id,
-                "email": u.email,
-                "handle": u.handle or "",
-                "display_name": u.display_name,
-                "verified": prof.verified if prof else False,
-                "category": (prof.category or "") if prof else "",
-                "video_count": int(video_count),
-                "subscriber_count": int(sub_count),
-                "monetization_eligible": prof.monetization_eligible if prof else False,
-                "payout_status": prof.payout_status if prof else "",
-            }
-        )
-    return out
+    return [
+        {
+            "id": u.id,
+            "email": u.email,
+            "handle": u.handle or "",
+            "display_name": u.display_name,
+            "verified": prof.verified if prof else False,
+            "category": (prof.category or "") if prof else "",
+            "video_count": int(video_count),
+            "subscriber_count": int(subscriber_count),
+            "monetization_eligible": prof.monetization_eligible if prof else False,
+            "payout_status": prof.payout_status if prof else "",
+        }
+        for u, prof, video_count, subscriber_count in q.all()
+    ]
 
 
 class CreatorVerifiedBody(BaseModel):

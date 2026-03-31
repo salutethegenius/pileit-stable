@@ -36,16 +36,13 @@ async def send_tip(
     platform_cut = Decimal(str(body.amount)) * Decimal(str(settings.platform_fee_tips))
     creator_cut = Decimal(str(body.amount)) - platform_cut
     cents = int(float(body.amount) * 100)
-    tx = await kemispay.charge_amount(
-        cents,
-        {"user_id": user.id, "creator_id": body.creator_id, "video_id": body.video_id},
-    )
+
+    # Write DB record first, then charge. Roll back if payment fails.
     tip = models.Tip(
         sender_id=user.id,
         creator_id=body.creator_id,
         video_id=body.video_id,
         amount=Decimal(str(body.amount)),
-        kemispay_tx_id=tx,
     )
     db.add(tip)
     prof = creator.creator_profile
@@ -55,6 +52,18 @@ async def send_tip(
         v = db.get(models.Video, body.video_id)
         if v:
             v.tip_total = (v.tip_total or Decimal("0")) + Decimal(str(body.amount))
+    db.flush()
+
+    try:
+        tx = await kemispay.charge_amount(
+            cents,
+            {"user_id": user.id, "creator_id": body.creator_id, "video_id": body.video_id},
+        )
+    except Exception:
+        db.rollback()
+        raise HTTPException(502, "Payment processing failed")
+
+    tip.kemispay_tx_id = tx
     db.commit()
     return {"id": tip.id, "kemispay_tx_id": tx, "platform_fee": float(platform_cut)}
 

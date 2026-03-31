@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
@@ -133,17 +134,17 @@ def claim_start(
     db.commit()
 
     verify_url = f"{settings.api_public_url.rstrip('/')}/creators/claim/email/{raw_token}"
-    logger.info(
-        "CLAIM_EMAIL handle=%s to=%s verify_url=%s",
-        handle,
-        email_norm,
-        verify_url,
-    )
-    return {
+    logger.info("CLAIM_EMAIL handle=%s to=%s", handle, email_norm)
+
+    resp: dict = {
         "ok": True,
         "detail": "Check your inbox for the verification link.",
-        "_dev_verify_url": verify_url,
     }
+    # Only expose the raw verify URL in local development (no Railway).
+    if not os.getenv("RAILWAY_ENVIRONMENT"):
+        logger.info("DEV verify_url=%s", verify_url)
+        resp["_dev_verify_url"] = verify_url
+    return resp
 
 
 @router.get("/claim/email/{raw_token}")

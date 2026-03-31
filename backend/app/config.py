@@ -107,6 +107,19 @@ class Settings(BaseSettings):
     )
 
     @model_validator(mode="after")
+    def reject_default_secrets_in_production(self):
+        """Fail fast if production is running with placeholder dev secrets."""
+        if not os.getenv("RAILWAY_ENVIRONMENT"):
+            return self
+        _defaults = {"dev-change-me-in-production", "dev-refresh-change-me"}
+        if self.jwt_secret in _defaults or self.jwt_refresh_secret in _defaults:
+            raise ValueError(
+                "jwt_secret / jwt_refresh_secret must be changed from their "
+                "default values in production. Set them as environment variables."
+            )
+        return self
+
+    @model_validator(mode="after")
     def resolve_sqlite_url(self):
         u = self.database_url.strip()
         # Heroku / Railway-style URLs use postgres://; SQLAlchemy expects postgresql://

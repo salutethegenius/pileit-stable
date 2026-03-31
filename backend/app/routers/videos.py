@@ -25,6 +25,11 @@ router = APIRouter(prefix="/videos", tags=["videos"])
 logger = logging.getLogger(__name__)
 VIEW_DEDUPE_WINDOW_MINUTES = 30
 
+# In-memory per-IP rate limit for view endpoint (max requests per window)
+_view_rate_limit: dict[str, list[float]] = {}
+_VIEW_RATE_MAX = 60  # max view requests per IP per window
+_VIEW_RATE_WINDOW = 300  # 5 minutes
+
 
 class VideoOut(BaseModel):
     id: str
@@ -511,7 +516,22 @@ def increment_view(
     v = db.get(models.Video, video_id)
     if not v:
         raise HTTPException(404, "Not found")
+
+    # Per-IP rate limit to prevent bot abuse
     now = datetime.now(timezone.utc)
+    now_ts = now.timestamp()
+    client_ip = (
+        (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
+        or (request.headers.get("cf-connecting-ip") or "").strip()
+        or (request.client.host if request.client else "unknown")
+    )
+    hits = _view_rate_limit.get(client_ip, [])
+    hits = [t for t in hits if now_ts - t < _VIEW_RATE_WINDOW]
+    if len(hits) >= _VIEW_RATE_MAX:
+        raise HTTPException(429, "Too many requests")
+    hits.append(now_ts)
+    _view_rate_limit[client_ip] = hits
+
     fp = _viewer_fingerprint_hash(request)
     country = _client_country(request)
     if fp:

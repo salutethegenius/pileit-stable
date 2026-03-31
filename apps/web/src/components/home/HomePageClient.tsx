@@ -146,7 +146,7 @@ export default function HomePageClient() {
           if (sections && typeof sections === "object")
             setHomepageSections(mergeHomepageSections(sections as Record<string, boolean>));
         })
-        .catch(() => {}),
+        .catch((e) => console.warn("homepage-sections fetch failed", e)),
     ]).finally(() => {
       if (!cancelled) setCatalogFetched(true);
     });

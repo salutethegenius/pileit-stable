@@ -152,6 +152,10 @@ class CreatorApplication(Base):
 
 class Video(Base):
     __tablename__ = "videos"
+    __table_args__ = (
+        Index("ix_videos_creator_id", "creator_id"),
+        Index("ix_videos_status_created", "status", "created_at"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
     creator_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"))
@@ -219,6 +223,11 @@ class VideoViewEvent(Base):
 
 class Subscription(Base):
     __tablename__ = "subscriptions"
+    __table_args__ = (
+        UniqueConstraint("subscriber_id", "creator_id", name="uq_subscription"),
+        Index("ix_subscriptions_subscriber", "subscriber_id"),
+        Index("ix_subscriptions_creator_status", "creator_id", "status"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
     subscriber_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"))
@@ -235,12 +244,16 @@ class Subscription(Base):
 
 class Tip(Base):
     __tablename__ = "tips"
+    __table_args__ = (
+        Index("ix_tips_creator_id", "creator_id"),
+        Index("ix_tips_sender_id", "sender_id"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
     sender_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"))
     creator_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"))
     video_id: Mapped[Optional[str]] = mapped_column(
-        String(36), ForeignKey("videos.id"), nullable=True
+        String(36), ForeignKey("videos.id", ondelete="SET NULL"), nullable=True
     )
     amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     kemispay_tx_id: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
@@ -251,12 +264,17 @@ class Tip(Base):
 
 class PileComment(Base):
     __tablename__ = "pile_comments"
+    __table_args__ = (
+        Index("ix_pile_comments_video_id", "video_id"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
-    video_id: Mapped[str] = mapped_column(String(36), ForeignKey("videos.id"))
+    video_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("videos.id", ondelete="CASCADE")
+    )
     user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"))
     parent_id: Mapped[Optional[str]] = mapped_column(
-        String(36), ForeignKey("pile_comments.id"), nullable=True
+        String(36), ForeignKey("pile_comments.id", ondelete="CASCADE"), nullable=True
     )
     comment_type: Mapped[str] = mapped_column(String(16), nullable=False)
     content: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -316,9 +334,14 @@ class CreatorFollow(Base):
 
 class LiveChatMessage(Base):
     __tablename__ = "live_chat_messages"
+    __table_args__ = (
+        Index("ix_live_chat_messages_video_id", "video_id"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
-    video_id: Mapped[str] = mapped_column(String(36), ForeignKey("videos.id"))
+    video_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("videos.id", ondelete="CASCADE")
+    )
     user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"))
     body: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
