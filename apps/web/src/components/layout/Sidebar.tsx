@@ -319,6 +319,39 @@ export default function Sidebar() {
           </Box>
         </>
       )}
+
+      <Divider sx={{ my: 1.5, borderColor: PILEIT_THEME.border }} />
+
+      <Box sx={{ px: 1.5, pb: 1.5 }}>
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mb: 1 }}>
+          {[
+            { label: "About", href: "/" },
+            { label: "Privacy", href: "/privacy" },
+            { label: "Terms", href: "/terms" },
+          ].map((l) => (
+            <Typography
+              key={l.href}
+              component={Link}
+              href={l.href}
+              sx={{
+                fontSize: 11,
+                color: PILEIT_THEME.textDim,
+                textDecoration: "none",
+                "&:hover": { color: PILEIT_THEME.textSecondary },
+              }}
+            >
+              {l.label}
+            </Typography>
+          ))}
+        </Box>
+        <Typography
+          variant="caption"
+          sx={{ fontSize: 10, color: PILEIT_THEME.textDim, lineHeight: 1.5 }}
+          suppressHydrationWarning
+        >
+          © {new Date().getFullYear()} PileIt · The Kemis Group
+        </Typography>
+      </Box>
     </Box>
   );
 }

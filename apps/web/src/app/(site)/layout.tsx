@@ -1,7 +1,6 @@
 import Box from "@mui/material/Box";
 import Navbar from "@/components/layout/Navbar";
 import Sidebar, { SIDEBAR_WIDTH } from "@/components/layout/Sidebar";
-import SiteFooter from "@/components/layout/SiteFooter";
 import GlobalOverlays from "@/components/layout/GlobalOverlays";
 
 export default function SiteLayout({
@@ -23,8 +22,6 @@ export default function SiteLayout({
         }}
       >
         {children}
-        <Box sx={{ flex: 1 }} />
-        <SiteFooter />
       </Box>
       <GlobalOverlays />
     </Box>
