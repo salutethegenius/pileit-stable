@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import HeroBanner from "./HeroBanner";
-import CreatorRow from "./CreatorRow";
 import ContentRow from "./ContentRow";
 import { mockCreators, mockVideos } from "@/data/mock";
 import { getApiBase } from "@/lib/api";
@@ -220,13 +219,10 @@ export default function HomePageClient() {
           maxWidth: 1440,
           mx: "auto",
           width: "100%",
-          px: { xs: 1, sm: 2, md: "48px" },
-          pt: { xs: 1, sm: 2, md: 5.5 },
+          px: { xs: 1, sm: 2, md: 3 },
+          pt: { xs: 1, sm: 2, md: 3 },
         }}
       >
-        {homepageSections.featured_creators ? (
-          <CreatorRow title="Featured Creators" creators={featuredCreators} />
-        ) : null}
         {homepageSections.trending ? (
           <Box id="trending" sx={{ scrollMarginTop: 88 }}>
             <ContentRow title="Trending This Week" seeAllHref="/#trending" videos={trend} />

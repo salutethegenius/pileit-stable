@@ -9,7 +9,6 @@ import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
-import Typography from "@mui/material/Typography";
 import Avatar from "@mui/material/Avatar";
 import Skeleton from "@mui/material/Skeleton";
 import useMediaQuery from "@mui/material/useMediaQuery";
@@ -21,14 +20,6 @@ import PileItLockup from "@/components/brand/PileItLockup";
 import { useAuth } from "@/providers/AuthProvider";
 import { PILEIT_THEME } from "@/theme/theme";
 
-const navLinkSx = {
-  color: "text.secondary",
-  fontSize: 14,
-  fontWeight: 600,
-  "&:hover": { color: "text.primary" },
-};
-
-/** Public channel URL — same as viewers use (`/creator/[handle]`). */
 function myChannelHref(handle: string) {
   return `/creator/${encodeURIComponent(handle)}`;
 }
@@ -54,12 +45,13 @@ export default function Navbar() {
       elevation={0}
       sx={{
         height: 64,
+        zIndex: (t) => t.zIndex.drawer + 1,
         backgroundColor: "rgba(20,20,20,0.92)",
         backdropFilter: "blur(20px)",
         borderBottom: `1px solid ${PILEIT_THEME.border}`,
       }}
     >
-      <Toolbar sx={{ minHeight: 64, px: { xs: 2, md: "48px" }, gap: 2 }}>
+      <Toolbar sx={{ minHeight: 64, px: { xs: 2, md: 3 }, gap: 1.5 }}>
         <Link
           href="/"
           style={{
@@ -71,39 +63,10 @@ export default function Navbar() {
           <PileItLockup markSize={32} textSize={22} gap={32 * 0.28} />
         </Link>
 
-        {!isMobile && (
-          <Box
-            sx={{
-              flex: 1,
-              display: "flex",
-              justifyContent: "center",
-              gap: 3,
-            }}
-          >
-            <Typography component={Link} href="/" sx={navLinkSx}>
-              Browse
-            </Typography>
-            <Typography component={Link} href="/creators" sx={navLinkSx}>
-              Creators
-            </Typography>
-            <Typography component={Link} href="/live" sx={navLinkSx}>
-              Live
-            </Typography>
-            {user && canOpenPublicChannel(user) ? (
-              <Typography
-                component={Link}
-                href={myChannelHref(user.handle)}
-                sx={navLinkSx}
-              >
-                My channel
-              </Typography>
-            ) : null}
-          </Box>
-        )}
+        <Box sx={{ flex: 1 }} />
 
         {isMobile && (
           <>
-            <Box sx={{ flex: 1 }} />
             <IconButton
               color="inherit"
               onClick={(e) => setMobileOpen(e.currentTarget)}
@@ -117,13 +80,9 @@ export default function Navbar() {
               onClose={() => setMobileOpen(null)}
             >
               <MenuItem component={Link} href="/" onClick={() => setMobileOpen(null)}>
-                Browse
+                Home
               </MenuItem>
-              <MenuItem
-                component={Link}
-                href="/creators"
-                onClick={() => setMobileOpen(null)}
-              >
+              <MenuItem component={Link} href="/creators" onClick={() => setMobileOpen(null)}>
                 Creators
               </MenuItem>
               <MenuItem component={Link} href="/live" onClick={() => setMobileOpen(null)}>
@@ -202,28 +161,18 @@ export default function Navbar() {
           <IconButton color="inherit" size="small" aria-label="search">
             <SearchIcon />
           </IconButton>
-          {!isMobile && (
-            <IconButton color="inherit" size="small" aria-label="notifications">
-              <NotificationsNoneIcon />
-            </IconButton>
-          )}
+          <IconButton color="inherit" size="small" aria-label="notifications">
+            <NotificationsNoneIcon />
+          </IconButton>
           {authLoading ? (
-            !isMobile ? (
-              <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, ml: 0.5 }}>
-                <Skeleton
-                  variant="rounded"
-                  width={56}
-                  height={28}
-                  sx={{ bgcolor: "rgba(255,255,255,0.08)" }}
-                />
-                <Skeleton
-                  variant="rounded"
-                  width={64}
-                  height={28}
-                  sx={{ bgcolor: "rgba(255,255,255,0.08)" }}
-                />
-              </Box>
-            ) : null
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, ml: 0.5 }}>
+              <Skeleton
+                variant="circular"
+                width={32}
+                height={32}
+                sx={{ bgcolor: "rgba(255,255,255,0.08)" }}
+              />
+            </Box>
           ) : !user ? (
             !isMobile ? (
               <>
@@ -235,7 +184,7 @@ export default function Navbar() {
                     color: "text.secondary",
                     textTransform: "none",
                     minWidth: 0,
-                    px: 0.75,
+                    px: 1,
                     py: 0.5,
                     fontSize: 14,
                     fontWeight: 600,
@@ -247,16 +196,21 @@ export default function Navbar() {
                 <Button
                   component={Link}
                   href="/register"
-                  variant="text"
-                  color="primary"
+                  variant="outlined"
                   sx={{
                     textTransform: "none",
                     minWidth: 0,
-                    px: 0.75,
+                    px: 1.5,
                     py: 0.5,
                     fontSize: 14,
-                    fontWeight: 600,
+                    fontWeight: 700,
                     whiteSpace: "nowrap",
+                    borderColor: PILEIT_THEME.accent,
+                    color: PILEIT_THEME.accent,
+                    "&:hover": {
+                      borderColor: PILEIT_THEME.accentLight,
+                      bgcolor: "rgba(249, 115, 22, 0.08)",
+                    },
                   }}
                 >
                   Sign up
@@ -303,7 +257,6 @@ export default function Navbar() {
                     component={Link}
                     href={myChannelHref(user.handle)}
                     onClick={() => setAnchor(null)}
-                    title="Your public channel — the same URL viewers use."
                   >
                     My channel
                   </MenuItem>
