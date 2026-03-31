@@ -10,7 +10,7 @@ export default function SiteLayout({
   children: React.ReactNode;
 }) {
   return (
-    <Box sx={{ minHeight: "100vh" }}>
+    <Box sx={{ minHeight: "100vh", pt: "64px" }}>
       <Navbar />
       <Sidebar />
       <Box

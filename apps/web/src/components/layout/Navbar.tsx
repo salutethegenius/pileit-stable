@@ -41,7 +41,7 @@ export default function Navbar() {
 
   return (
     <AppBar
-      position="sticky"
+      position="fixed"
       elevation={0}
       sx={{
         height: 64,
