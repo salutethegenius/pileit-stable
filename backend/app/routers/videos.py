@@ -3,7 +3,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import desc, func, or_
 from sqlalchemy.orm import Session
@@ -20,6 +20,7 @@ from app.mux_client import (
     mux_get_upload,
     mux_static_thumbnail_url,
 )
+from app.profile_media import save_video_thumbnail
 
 router = APIRouter(prefix="/videos", tags=["videos"])
 logger = logging.getLogger(__name__)
@@ -317,6 +318,27 @@ def create_mux_direct_upload(
     }
 
 
+@router.post("/{video_id}/thumbnail")
+async def upload_video_thumbnail(
+    video_id: str,
+    user: Annotated[models.User, Depends(require_creator)],
+    db: Session = Depends(get_db),
+    file: UploadFile = File(...),
+):
+    """Set a custom thumbnail image for any video owned by the creator (jpg/png/webp, max 5MB)."""
+    v = db.get(models.Video, video_id)
+    if not v or v.creator_id != user.id:
+        raise HTTPException(404, "Not found")
+    # Do not delete the previous file before save: if save fails, the DB would still
+    # point at a removed object. save_video_thumbnail clears media/.../video_thumbs/{id}.*
+    # before writing the replacement.
+    rel = save_video_thumbnail(user.id, v.id, file)
+    v.thumbnail_url = rel
+    db.commit()
+    db.refresh(v)
+    return {"thumbnail_url": v.thumbnail_url}
+
+
 @router.get("/{video_id}/mux-upload-status")
 def mux_upload_poll_status(
     video_id: str,
@@ -404,7 +426,7 @@ def mux_upload_poll_status(
 
     v.playback_id = pid
     thumb = mux_static_thumbnail_url(pid)
-    if thumb:
+    if thumb and not ((v.thumbnail_url or "").strip()):
         v.thumbnail_url = thumb
     if d_int is not None:
         v.duration_seconds = d_int

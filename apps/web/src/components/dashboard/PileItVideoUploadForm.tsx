@@ -35,6 +35,20 @@ type DirectUploadCreateResponse = {
 
 const POLL_MS = 2000;
 const MAX_POLLS = 180;
+const MAX_THUMBNAIL_BYTES = 5 * 1024 * 1024;
+const THUMB_ACCEPT = "image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp";
+
+function isAllowedThumbnailType(file: File): boolean {
+  const t = (file.type || "").toLowerCase();
+  return (
+    t === "image/jpeg" ||
+    t === "image/png" ||
+    t === "image/webp" ||
+    /\.jpe?g$/i.test(file.name) ||
+    /\.png$/i.test(file.name) ||
+    /\.webp$/i.test(file.name)
+  );
+}
 
 function parseApiErr(err: unknown): string {
   if (err instanceof ApiError) {
@@ -76,6 +90,7 @@ export default function PileItVideoUploadForm({ accessToken, onComplete }: Props
   const [isrc, setIsrc] = useState("");
   const [publishAfterReady, setPublishAfterReady] = useState(true);
   const [file, setFile] = useState<File | null>(null);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [phase, setPhase] = useState<
     "idle" | "creating" | "uploading" | "processing" | "done"
@@ -167,6 +182,16 @@ export default function PileItVideoUploadForm({ accessToken, onComplete }: Props
       setErr("Choose a video file.");
       return;
     }
+    if (thumbnailFile) {
+      if (thumbnailFile.size > MAX_THUMBNAIL_BYTES) {
+        setErr("Thumbnail must be 5MB or smaller.");
+        return;
+      }
+      if (!isAllowedThumbnailType(thumbnailFile)) {
+        setErr("Thumbnail must be JPG, PNG, or WebP.");
+        return;
+      }
+    }
     const corsOrigin =
       typeof window !== "undefined" ? window.location.origin : undefined;
 
@@ -185,6 +210,27 @@ export default function PileItVideoUploadForm({ accessToken, onComplete }: Props
           cors_origin: corsOrigin || null,
         }),
       });
+
+      if (abortRef.current || !mountedRef.current) return;
+
+      if (thumbnailFile) {
+        try {
+          const fd = new FormData();
+          fd.append("file", thumbnailFile);
+          await apiFetch<{ thumbnail_url: string }>(
+            `/videos/${encodeURIComponent(created.video_id)}/thumbnail`,
+            { method: "POST", accessToken, body: fd }
+          );
+        } catch (thumbErr) {
+          await apiFetch(`/videos/${encodeURIComponent(created.video_id)}`, {
+            method: "DELETE",
+            accessToken,
+          }).catch(() => {
+            /* best-effort cleanup of orphan draft */
+          });
+          throw thumbErr;
+        }
+      }
 
       if (abortRef.current || !mountedRef.current) return;
       safeSetPhase("uploading");
@@ -284,6 +330,18 @@ export default function PileItVideoUploadForm({ accessToken, onComplete }: Props
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
           />
         </Button>
+        <Button variant="outlined" component="label" disabled={busy} sx={{ textTransform: "none" }}>
+          {thumbnailFile ? thumbnailFile.name : "Custom thumbnail (optional)"}
+          <input
+            type="file"
+            hidden
+            accept={THUMB_ACCEPT}
+            onChange={(e) => setThumbnailFile(e.target.files?.[0] ?? null)}
+          />
+        </Button>
+        <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: -1 }}>
+          JPG, PNG, or WebP, max 5MB. If omitted, PileIt uses an automatic frame from your video.
+        </Typography>
         <FormControlLabel
           control={
             <Switch

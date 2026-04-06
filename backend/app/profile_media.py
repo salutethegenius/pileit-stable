@@ -79,6 +79,37 @@ def save_profile_image(
     return rel_key
 
 
+def save_video_thumbnail(user_id: str, video_id: str, upload: UploadFile) -> str:
+    """Store a custom video poster under media/{user_id}/video_thumbs/{video_id}{ext}."""
+    vid = (video_id or "").strip()
+    if not vid or ".." in vid or "/" in vid or "\\" in vid:
+        raise HTTPException(400, "Invalid video id")
+    ext = _ext_for_upload(upload)
+    dest_name = f"{vid}{ext}"
+    rel_key = f"media/{user_id}/video_thumbs/{dest_name}"
+    thumb_prefix = f"media/{user_id}/video_thumbs/{vid}."
+
+    body, content_type = _read_upload_limited(upload)
+
+    if profile_bucket_configured():
+        delete_keys_with_prefix(thumb_prefix)
+        put_media_object(rel_key, body, content_type)
+        return rel_key
+
+    base = upload_base()
+    media_dir = base / "media" / user_id / "video_thumbs"
+    media_dir.mkdir(parents=True, exist_ok=True)
+    for p in media_dir.glob(f"{vid}.*"):
+        try:
+            p.unlink()
+        except OSError:
+            pass
+    dest_path = media_dir / dest_name
+    with dest_path.open("wb") as f:
+        f.write(body)
+    return rel_key
+
+
 def delete_stored_media(rel: str | None) -> None:
     if not rel or not rel.startswith("media/"):
         return

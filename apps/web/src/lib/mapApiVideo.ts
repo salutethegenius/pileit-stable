@@ -77,15 +77,15 @@ function mapApiVideoToPileItVideoInternal(
     shareCount?: number;
   }
 ): PileItVideo {
+  const rawThumb = (row.thumbnail_url && row.thumbnail_url.trim()) || "";
+  const resolvedThumb = rawThumb ? resolveMediaUrl(rawThumb) : "";
   const thumb =
-    (row.thumbnail_url && row.thumbnail_url.trim()) ||
-    muxThumbnailUrl(row.playback_id) ||
-    "";
+    resolvedThumb || muxThumbnailUrl(row.playback_id) || "";
+  const rawBackdrop =
+    (row.backdrop_url && row.backdrop_url.trim()) || rawThumb;
+  const resolvedBackdrop = rawBackdrop ? resolveMediaUrl(rawBackdrop) : "";
   const back =
-    (row.backdrop_url && row.backdrop_url.trim()) ||
-    (row.thumbnail_url && row.thumbnail_url.trim()) ||
-    muxThumbnailUrl(row.playback_id) ||
-    "";
+    resolvedBackdrop || muxThumbnailUrl(row.playback_id) || "";
   return {
     id: row.id,
     title: row.title,

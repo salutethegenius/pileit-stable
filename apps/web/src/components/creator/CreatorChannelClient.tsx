@@ -54,6 +54,8 @@ export default function CreatorChannelClient({ creator, videos }: Props) {
   const [activeLive, setActiveLive] = useState<ApiVideoRow | null>(null);
 
   const isOwnChannel = user?.id === creator.id;
+  const canUseCreatorUpload =
+    user?.accountType === "creator" || user?.accountType === "admin";
 
   useEffect(() => {
     setAvatarFailed(false);
@@ -259,6 +261,17 @@ export default function CreatorChannelClient({ creator, videos }: Props) {
                     : claimStatus === "identity_review"
                       ? "Claim status"
                       : "Continue claim"}
+                </Button>
+              ) : null}
+              {isOwnChannel && canUseCreatorUpload ? (
+                <Button
+                  component={Link}
+                  href="/dashboard/upload"
+                  variant="outlined"
+                  color="primary"
+                  sx={{ textTransform: "none" }}
+                >
+                  + Video
                 </Button>
               ) : null}
               {!isOwnChannel ? (
