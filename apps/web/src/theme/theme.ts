@@ -36,6 +36,12 @@ export function createPileItTheme() {
         secondary: PILEIT_THEME.textSecondary,
       },
       divider: PILEIT_THEME.border,
+      warning: {
+        main: PILEIT_THEME.accent,
+        light: PILEIT_THEME.accentLight,
+        dark: PILEIT_THEME.accentDark,
+        contrastText: "#1a1a1a",
+      },
       success: { main: PILEIT_THEME.green },
       info: { main: PILEIT_THEME.blue },
       error: { main: PILEIT_THEME.red },

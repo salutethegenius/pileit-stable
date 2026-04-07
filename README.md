@@ -4,7 +4,7 @@ Bahamian-first streaming and creator economy platform: Netflix-style browse, cre
 
 ## Structure
 
-- **`apps/web`** — Next.js 14 (App Router), MUI v5, Framer Motion, react-slick, Video.js
+- **`apps/web`** — Next.js 15 (App Router), MUI v5, Framer Motion, react-slick, Video.js
 - **`backend`** — FastAPI, SQLAlchemy, JWT auth, SQLite by default (set `DATABASE_URL` for PostgreSQL). **Money is BSD** (Bahamian dollars) everywhere tips, subs, and shop amounts are shown or accepted.
 - **`services/webrtc-rtmp-gateway`** — Node service: browser → LiveKit → RTMP → Mux (see [`docs/staging-readiness.md`](docs/staging-readiness.md)).
 - **`pileit-brand-01.jsx`** — brand lab reference (production components live under `apps/web/src/components/brand/`)

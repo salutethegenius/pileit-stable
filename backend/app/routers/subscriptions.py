@@ -25,6 +25,7 @@ async def subscribe(
     user: Annotated[models.User, Depends(get_current_user)],
     db: Session = Depends(get_db),
 ):
+    kemispay.assert_live_payments_or_503()
     creator = db.get(models.User, body.creator_id)
     if not creator or creator.account_type != "creator":
         raise HTTPException(404, "Creator not found")

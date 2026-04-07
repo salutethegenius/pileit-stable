@@ -175,12 +175,42 @@ class Video(Base):
     is_locked: Mapped[bool] = mapped_column(Boolean, default=False)
     status: Mapped[str] = mapped_column(String(32), default="draft")
     view_count: Mapped[int] = mapped_column(Integer, default=0)
+    like_count: Mapped[int] = mapped_column(Integer, default=0)
+    dislike_count: Mapped[int] = mapped_column(Integer, default=0)
     tip_total: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0"))
-    # Compact 12-char ISRC for performance-rights usage reporting (PRS / BMI / ASCAP, etc.).
     isrc: Mapped[Optional[str]] = mapped_column(String(12), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=datetime.utcnow
     )
+
+    reactions: Mapped[list["VideoReaction"]] = relationship(
+        back_populates="video", cascade="all, delete-orphan"
+    )
+
+
+class VideoReaction(Base):
+    """Per-user video like/dislike. UniqueConstraint enforces one reaction per user per video."""
+
+    __tablename__ = "video_reactions"
+    __table_args__ = (
+        UniqueConstraint("video_id", "user_id", name="uq_video_user_reaction"),
+        Index("ix_video_reactions_video_id", "video_id"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    video_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("videos.id", ondelete="CASCADE"), nullable=False
+    )
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    reaction_type: Mapped[str] = mapped_column(String(16), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow
+    )
+
+    video: Mapped["Video"] = relationship(back_populates="reactions")
+    user: Mapped["User"] = relationship()
 
 
 class IsrcPlayEvent(Base):

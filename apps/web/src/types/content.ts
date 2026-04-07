@@ -47,9 +47,14 @@ export interface PileItVideo {
   isLocked: boolean;
   isNew?: boolean;
   viewCount: number;
+  likeCount?: number;
+  dislikeCount?: number;
   tipCount: number;
   pileCount?: number;
   shareCount?: number;
+  userLiked?: boolean;
+  userDisliked?: boolean;
+  viewerFollows?: boolean;
   creator: Pick<
     Creator,
     | "id"

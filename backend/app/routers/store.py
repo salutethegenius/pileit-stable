@@ -90,6 +90,7 @@ async def checkout(
     user: Annotated[models.User, Depends(get_current_user)],
     db: Session = Depends(get_db),
 ):
+    kemispay.assert_live_payments_or_503()
     p = db.get(models.StoreProduct, body.product_id)
     if not p or not p.active:
         raise HTTPException(404, "Product not found")

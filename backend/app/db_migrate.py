@@ -42,6 +42,31 @@ def migrate_postgres(engine: Engine) -> None:
                 )
             if "mux_live_status" not in cols:
                 conn.execute(text("ALTER TABLE videos ADD COLUMN mux_live_status VARCHAR(32)"))
+            if "like_count" not in cols:
+                conn.execute(
+                    text("ALTER TABLE videos ADD COLUMN like_count INTEGER NOT NULL DEFAULT 0")
+                )
+            if "dislike_count" not in cols:
+                conn.execute(
+                    text("ALTER TABLE videos ADD COLUMN dislike_count INTEGER NOT NULL DEFAULT 0")
+                )
+
+        if not insp.has_table("video_reactions"):
+            conn.execute(
+                text(
+                    "CREATE TABLE video_reactions ("
+                    "  id VARCHAR(36) PRIMARY KEY,"
+                    "  video_id VARCHAR(36) NOT NULL REFERENCES videos(id) ON DELETE CASCADE,"
+                    "  user_id VARCHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE,"
+                    "  reaction_type VARCHAR(16) NOT NULL,"
+                    "  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+                    "  CONSTRAINT uq_video_user_reaction UNIQUE (video_id, user_id)"
+                    ")"
+                )
+            )
+            conn.execute(
+                text("CREATE INDEX ix_video_reactions_video_id ON video_reactions(video_id)")
+            )
 
 
 def _sqlite_columns(conn, table: str) -> set[str]:
@@ -218,3 +243,28 @@ def migrate_sqlite(engine: Engine) -> None:
                 )
             if "mux_live_status" not in vcols:
                 conn.execute(text("ALTER TABLE videos ADD COLUMN mux_live_status VARCHAR(32)"))
+            if "like_count" not in vcols:
+                conn.execute(
+                    text("ALTER TABLE videos ADD COLUMN like_count INTEGER NOT NULL DEFAULT 0")
+                )
+            if "dislike_count" not in vcols:
+                conn.execute(
+                    text("ALTER TABLE videos ADD COLUMN dislike_count INTEGER NOT NULL DEFAULT 0")
+                )
+
+        if not inspect(engine).has_table("video_reactions"):
+            conn.execute(
+                text(
+                    "CREATE TABLE video_reactions ("
+                    "  id VARCHAR(36) PRIMARY KEY,"
+                    "  video_id VARCHAR(36) NOT NULL REFERENCES videos(id) ON DELETE CASCADE,"
+                    "  user_id VARCHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE,"
+                    "  reaction_type VARCHAR(16) NOT NULL,"
+                    "  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,"
+                    "  CONSTRAINT uq_video_user_reaction UNIQUE (video_id, user_id)"
+                    ")"
+                )
+            )
+            conn.execute(
+                text("CREATE INDEX ix_video_reactions_video_id ON video_reactions(video_id)")
+            )

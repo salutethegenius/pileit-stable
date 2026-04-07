@@ -22,6 +22,7 @@ async def charge(
     body: ChargeBody,
     user: Annotated[models.User, Depends(get_current_user)],
 ):
+    kpay.assert_live_payments_or_503()
     tx = await kpay.charge_amount(body.amount_cents, body.metadata | {"user": user.id})
     return {"id": tx}
 
@@ -45,4 +46,5 @@ async def payout_trigger(
     body: PayoutBody,
     user: Annotated[models.User, Depends(get_current_user)],
 ):
+    kpay.assert_live_payments_or_503()
     return {"status": "queued", "amount": body.amount}

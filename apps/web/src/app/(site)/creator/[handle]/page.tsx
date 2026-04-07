@@ -16,13 +16,14 @@ import {
 } from "@/lib/seoMetadata";
 import { getSiteUrl } from "@/lib/site";
 
-type Props = { params: { handle: string } };
+type Props = { params: Promise<{ handle: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const fromApi = await fetchCreatorChannel(params.handle);
+  const { handle } = await params;
+  const fromApi = await fetchCreatorChannel(handle);
   const creator =
     fromApi?.creator ??
-    (allowMockCatalogFallback() ? getCreatorByHandle(params.handle) : null);
+    (allowMockCatalogFallback() ? getCreatorByHandle(handle) : null);
   if (!creator) {
     return {
       title: "Creator not found",
@@ -62,7 +63,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function CreatorPage({
   params,
 }: Props) {
-  const fromApi = await fetchCreatorChannel(params.handle);
+  const { handle } = await params;
+  const fromApi = await fetchCreatorChannel(handle);
   if (fromApi) {
     const site = getSiteUrl();
     const profileUrl = `${site}/creator/${encodeURIComponent(fromApi.creator.handle)}`;
@@ -98,9 +100,9 @@ export default async function CreatorPage({
     );
   }
   if (!allowMockCatalogFallback()) notFound();
-  const creator = getCreatorByHandle(params.handle);
+  const creator = getCreatorByHandle(handle);
   if (!creator) notFound();
-  const videos = getVideosByCreatorHandle(params.handle);
+  const videos = getVideosByCreatorHandle(handle);
   const site = getSiteUrl();
   const profileUrl = `${site}/creator/${encodeURIComponent(creator.handle)}`;
   const image = pickHttpsImage(creator.heroImageUrl, creator.avatarUrl);

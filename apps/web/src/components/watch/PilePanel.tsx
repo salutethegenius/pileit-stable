@@ -74,8 +74,7 @@ export default function PilePanel({
         flexDirection: "column",
         height: "100%",
         minHeight: 0,
-        borderLeft: isMobile ? "none" : "1px solid #333",
-        bgcolor: "#1a1a1a",
+        bgcolor: "transparent",
       }}
     >
       {isMobile && (
@@ -113,7 +112,7 @@ export default function PilePanel({
         {tab === 1 && <LiveChatPanel videoId={videoId} />}
       </Box>
       {tab === 0 && (
-        <Box sx={{ p: 1.5, borderTop: "1px solid #333", flexShrink: 0 }}>
+        <Box sx={{ p: 1.5, flexShrink: 0 }}>
           <ToggleButtonGroup
             exclusive
             size="small"

@@ -27,6 +27,7 @@ async def send_tip(
     user: Annotated[models.User, Depends(get_current_user)],
     db: Session = Depends(get_db),
 ):
+    kemispay.assert_live_payments_or_503()
     if body.amount <= 0:
         raise HTTPException(400, "Invalid amount")
     creator = db.get(models.User, body.creator_id)

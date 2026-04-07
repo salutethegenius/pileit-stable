@@ -45,11 +45,13 @@ def meta_webhook_verify(request: Request):
 async def meta_webhook_receive(request: Request, db: Session = Depends(get_db)):
     body = await request.body()
     secret = (settings.meta_app_secret or "").strip()
-    if secret:
-        sig = request.headers.get("X-Hub-Signature-256")
-        if not verify_x_hub_signature_256(body, sig):
-            logger.warning("Meta webhook signature mismatch")
-            raise HTTPException(403, "Invalid signature")
+    if not secret:
+        logger.warning("Meta webhook rejected — meta_app_secret is not set")
+        raise HTTPException(status_code=403, detail="Forbidden")
+    sig = request.headers.get("X-Hub-Signature-256")
+    if not verify_x_hub_signature_256(body, sig):
+        logger.warning("Meta webhook signature mismatch")
+        raise HTTPException(status_code=403, detail="Invalid signature")
 
     try:
         payload = json.loads(body.decode("utf-8") or "{}")

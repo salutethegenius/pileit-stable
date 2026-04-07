@@ -18,6 +18,8 @@ const nextConfig = {
   },
   images: {
     minimumCacheTTL: 3600,
+    /** Next 15+ requires whitelisting custom `quality` on `<Image />` (Next 16 will enforce). */
+    qualities: [70, 75, 80],
     remotePatterns: [
       {
         protocol: "https",

@@ -180,6 +180,8 @@ def _serialize(v: models.Video) -> dict:
         "category": v.category or "",
         "is_locked": v.is_locked,
         "view_count": v.view_count,
+        "like_count": v.like_count,
+        "dislike_count": v.dislike_count,
         "tip_total": float(v.tip_total),
         "creator_id": v.creator_id,
         "status": v.status,
@@ -228,6 +230,9 @@ def _minimal_mine_row(v: models.Video) -> dict:
 
 def _cascade_delete_video_rows(db: Session, video_id: str) -> None:
     _delete_pile_comments_for_video(db, video_id)
+    db.query(models.VideoReaction).filter(
+        models.VideoReaction.video_id == video_id
+    ).delete(synchronize_session=False)
     db.query(models.LiveChatMessage).filter(
         models.LiveChatMessage.video_id == video_id
     ).delete(synchronize_session=False)
@@ -526,7 +531,144 @@ def get_video(
         models.PileComment.video_id == v.id
     ).count()
     base["share_count"] = 0
+    base["like_count"] = v.like_count
+    base["dislike_count"] = v.dislike_count
+
+    base["user_liked"] = False
+    base["user_disliked"] = False
+    base["viewer_follows"] = False
+    if user:
+        rx = (
+            db.query(models.VideoReaction)
+            .filter(
+                models.VideoReaction.video_id == v.id,
+                models.VideoReaction.user_id == user.id,
+            )
+            .first()
+        )
+        if rx:
+            base["user_liked"] = rx.reaction_type == "like"
+            base["user_disliked"] = rx.reaction_type == "dislike"
+        base["viewer_follows"] = (
+            db.query(models.CreatorFollow.id)
+            .filter(
+                models.CreatorFollow.follower_id == user.id,
+                models.CreatorFollow.creator_id == v.creator_id,
+            )
+            .first()
+            is not None
+        )
     return base
+
+
+def _toggle_reaction(video_id: str, user: models.User, reaction_type: str, db: Session) -> dict:
+    """Toggle or switch a like/dislike. Returns updated counts + user state."""
+    v = db.get(models.Video, video_id)
+    if not v:
+        raise HTTPException(404, "Not found")
+    existing = (
+        db.query(models.VideoReaction)
+        .filter(
+            models.VideoReaction.video_id == v.id,
+            models.VideoReaction.user_id == user.id,
+        )
+        .first()
+    )
+    if existing:
+        if existing.reaction_type == reaction_type:
+            if reaction_type == "like":
+                v.like_count = max(v.like_count - 1, 0)
+            else:
+                v.dislike_count = max(v.dislike_count - 1, 0)
+            db.delete(existing)
+            db.commit()
+            db.refresh(v)
+            return {
+                "liked": False,
+                "disliked": False,
+                "like_count": v.like_count,
+                "dislike_count": v.dislike_count,
+            }
+        else:
+            if existing.reaction_type == "like":
+                v.like_count = max(v.like_count - 1, 0)
+            else:
+                v.dislike_count = max(v.dislike_count - 1, 0)
+            existing.reaction_type = reaction_type
+            if reaction_type == "like":
+                v.like_count += 1
+            else:
+                v.dislike_count += 1
+            db.commit()
+            db.refresh(v)
+            return {
+                "liked": reaction_type == "like",
+                "disliked": reaction_type == "dislike",
+                "like_count": v.like_count,
+                "dislike_count": v.dislike_count,
+            }
+    else:
+        rx = models.VideoReaction(
+            video_id=v.id,
+            user_id=user.id,
+            reaction_type=reaction_type,
+        )
+        db.add(rx)
+        if reaction_type == "like":
+            v.like_count += 1
+        else:
+            v.dislike_count += 1
+        db.commit()
+        db.refresh(v)
+        return {
+            "liked": reaction_type == "like",
+            "disliked": reaction_type == "dislike",
+            "like_count": v.like_count,
+            "dislike_count": v.dislike_count,
+        }
+
+
+@router.post("/{video_id}/like")
+def like_video(
+    video_id: str,
+    user: Annotated[models.User, Depends(get_current_user)],
+    db: Session = Depends(get_db),
+):
+    return _toggle_reaction(video_id, user, "like", db)
+
+
+@router.post("/{video_id}/dislike")
+def dislike_video(
+    video_id: str,
+    user: Annotated[models.User, Depends(get_current_user)],
+    db: Session = Depends(get_db),
+):
+    return _toggle_reaction(video_id, user, "dislike", db)
+
+
+@router.get("/{video_id}/reaction")
+def get_reaction(
+    video_id: str,
+    user: Annotated[models.User, Depends(get_current_user)],
+    db: Session = Depends(get_db),
+):
+    v = db.get(models.Video, video_id)
+    if not v:
+        raise HTTPException(404, "Not found")
+    rx = (
+        db.query(models.VideoReaction)
+        .filter(
+            models.VideoReaction.video_id == v.id,
+            models.VideoReaction.user_id == user.id,
+        )
+        .first()
+    )
+    return {
+        "liked": bool(rx and rx.reaction_type == "like"),
+        "disliked": bool(rx and rx.reaction_type == "dislike"),
+        "like_count": v.like_count,
+        "dislike_count": v.dislike_count,
+    }
 
 
 @router.post("/{video_id}/view")
@@ -690,13 +832,15 @@ class PileCommentOut(BaseModel):
 
 
 @router.get("/{video_id}/pile", response_model=list[PileCommentOut])
-def get_pile(video_id: str, db: Session = Depends(get_db)):
-    rows = (
+def get_pile(video_id: str, db: Session = Depends(get_db), limit: int | None = None):
+    q = (
         db.query(models.PileComment)
         .filter(models.PileComment.video_id == video_id)
         .order_by(models.PileComment.created_at.desc())
-        .all()
     )
+    if limit is not None and limit > 0:
+        q = q.limit(limit)
+    rows = q.all()
     out = []
     for c in rows:
         u = db.get(models.User, c.user_id)

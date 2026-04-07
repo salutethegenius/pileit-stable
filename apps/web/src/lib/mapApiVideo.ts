@@ -42,6 +42,11 @@ export type ApiVideoDetailRow = ApiVideoRow & {
   tip_count?: number;
   pile_count?: number;
   share_count?: number;
+  like_count?: number;
+  dislike_count?: number;
+  user_liked?: boolean;
+  user_disliked?: boolean;
+  viewer_follows?: boolean;
 };
 
 export function mapApiToPileItVideo(row: ApiVideoRow): PileItVideo {
@@ -66,6 +71,11 @@ export function mapApiVideoDetailToPileItVideo(row: ApiVideoDetailRow): PileItVi
     tipCount: row.tip_count ?? row.tip_total ?? 0,
     pileCount: row.pile_count ?? 0,
     shareCount: row.share_count ?? 0,
+    likeCount: row.like_count ?? 0,
+    dislikeCount: row.dislike_count ?? 0,
+    userLiked: row.user_liked ?? false,
+    userDisliked: row.user_disliked ?? false,
+    viewerFollows: row.viewer_follows ?? false,
   });
 }
 
@@ -75,6 +85,11 @@ function mapApiVideoToPileItVideoInternal(
     tipCount?: number;
     pileCount?: number;
     shareCount?: number;
+    likeCount?: number;
+    dislikeCount?: number;
+    userLiked?: boolean;
+    userDisliked?: boolean;
+    viewerFollows?: boolean;
   }
 ): PileItVideo {
   const rawThumb = (row.thumbnail_url && row.thumbnail_url.trim()) || "";
@@ -101,9 +116,14 @@ function mapApiVideoToPileItVideoInternal(
     isrc: row.isrc?.trim() || undefined,
     isLocked: Boolean(row.is_locked),
     viewCount: row.view_count,
+    likeCount: overrides.likeCount ?? 0,
+    dislikeCount: overrides.dislikeCount ?? 0,
     tipCount: overrides.tipCount ?? row.tip_total ?? 0,
     pileCount: overrides.pileCount ?? 0,
     shareCount: overrides.shareCount ?? 0,
+    userLiked: overrides.userLiked ?? false,
+    userDisliked: overrides.userDisliked ?? false,
+    viewerFollows: overrides.viewerFollows ?? false,
     creator: {
       id: row.creator.id,
       handle: row.creator.handle || "",

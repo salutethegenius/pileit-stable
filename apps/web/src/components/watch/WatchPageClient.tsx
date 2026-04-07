@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -9,7 +9,13 @@ import Stack from "@mui/material/Stack";
 import Avatar from "@mui/material/Avatar";
 import Paper from "@mui/material/Paper";
 import Fab from "@mui/material/Fab";
+import IconButton from "@mui/material/IconButton";
+import Snackbar from "@mui/material/Snackbar";
 import ChatIcon from "@mui/icons-material/Chat";
+import ThumbUpIcon from "@mui/icons-material/ThumbUp";
+import ThumbUpOutlinedIcon from "@mui/icons-material/ThumbUpOutlined";
+import ThumbDownIcon from "@mui/icons-material/ThumbDown";
+import ThumbDownOutlinedIcon from "@mui/icons-material/ThumbDownOutlined";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
 import VideoPlayer from "@/components/VideoPlayer";
@@ -22,18 +28,33 @@ import { useSubscriptionCheck } from "@/hooks/useSubscriptionCheck";
 import { formatCount, formatCreatorAudienceLine } from "@/utils/format";
 import type { PileItVideo } from "@/types/content";
 import { IMG } from "@/lib/imageUrls";
-import { getApiBase } from "@/lib/api";
+import { apiFetch, getApiBase } from "@/lib/api";
+import { useAuth } from "@/providers/AuthProvider";
 
 type Props = { video: PileItVideo };
 
 export default function WatchPageClient({ video }: Props) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"), { noSsr: true });
+  const { accessToken } = useAuth();
   const [tipOpen, setTipOpen] = useState(false);
   const [subOpen, setSubOpen] = useState(false);
   const [pileSheet, setPileSheet] = useState(false);
   const [reportVideoOpen, setReportVideoOpen] = useState(false);
   const [optimisticSub, setOptimisticSub] = useState(false);
+  const [snackMsg, setSnackMsg] = useState("");
+
+  // --- Like / Dislike ---
+  const [liked, setLiked] = useState(video.userLiked ?? false);
+  const [disliked, setDisliked] = useState(video.userDisliked ?? false);
+  const [likeCount, setLikeCount] = useState(video.likeCount ?? 0);
+  const [dislikeCount, setDislikeCount] = useState(video.dislikeCount ?? 0);
+
+  // --- Follow ---
+  const [following, setFollowing] = useState(video.viewerFollows ?? false);
+
+  // --- Watchlist (local-only stub) ---
+  const [onWatchlist, setOnWatchlist] = useState(false);
 
   const { subscribed: apiSub, loading: subLoading } = useSubscriptionCheck(
     video.creator.id
@@ -53,6 +74,100 @@ export default function WatchPageClient({ video }: Props) {
       /* non-blocking */
     });
   }, [video.id]);
+
+  // Hydrate reaction + follow state from API when authenticated
+  useEffect(() => {
+    if (!accessToken) return;
+    const vid = encodeURIComponent(video.id);
+    apiFetch<{ liked: boolean; disliked: boolean; like_count: number; dislike_count: number }>(
+      `/videos/${vid}/reaction`,
+      { accessToken },
+    )
+      .then((r) => {
+        setLiked(r.liked);
+        setDisliked(r.disliked);
+        setLikeCount(r.like_count);
+        setDislikeCount(r.dislike_count);
+      })
+      .catch(() => {});
+    apiFetch<{ following: boolean }>(
+      `/follows/check/${encodeURIComponent(video.creator.id)}`,
+      { accessToken },
+    )
+      .then((r) => setFollowing(r.following))
+      .catch(() => {});
+  }, [video.id, video.creator.id, accessToken]);
+
+  const handleLike = useCallback(async () => {
+    if (!accessToken) return;
+    try {
+      const r = await apiFetch<{ liked: boolean; disliked: boolean; like_count: number; dislike_count: number }>(
+        `/videos/${encodeURIComponent(video.id)}/like`,
+        { method: "POST", accessToken },
+      );
+      setLiked(r.liked);
+      setDisliked(r.disliked);
+      setLikeCount(r.like_count);
+      setDislikeCount(r.dislike_count);
+    } catch { /* silent */ }
+  }, [video.id, accessToken]);
+
+  const handleDislike = useCallback(async () => {
+    if (!accessToken) return;
+    try {
+      const r = await apiFetch<{ liked: boolean; disliked: boolean; like_count: number; dislike_count: number }>(
+        `/videos/${encodeURIComponent(video.id)}/dislike`,
+        { method: "POST", accessToken },
+      );
+      setLiked(r.liked);
+      setDisliked(r.disliked);
+      setLikeCount(r.like_count);
+      setDislikeCount(r.dislike_count);
+    } catch { /* silent */ }
+  }, [video.id, accessToken]);
+
+  const handleFollow = useCallback(async () => {
+    if (!accessToken) return;
+    try {
+      if (following) {
+        await apiFetch(`/follows/${encodeURIComponent(video.creator.id)}`, {
+          method: "DELETE",
+          accessToken,
+        });
+        setFollowing(false);
+      } else {
+        await apiFetch("/follows", {
+          method: "POST",
+          accessToken,
+          body: JSON.stringify({ creator_id: video.creator.id }),
+        });
+        setFollowing(true);
+      }
+    } catch { /* silent */ }
+  }, [video.creator.id, accessToken, following]);
+
+  const handleShare = useCallback(async () => {
+    const url = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: video.title, url });
+        return;
+      }
+    } catch { /* user cancelled or not supported — fall through to clipboard */ }
+    try {
+      await navigator.clipboard.writeText(url);
+      setSnackMsg("Link copied to clipboard");
+    } catch {
+      setSnackMsg("Could not copy link");
+    }
+  }, [video.title]);
+
+  const handleWatchlist = useCallback(() => {
+    setOnWatchlist((prev) => {
+      setSnackMsg(prev ? "Removed from watchlist" : "Added to watchlist");
+      return !prev;
+    });
+  }, []);
 
   const stats = useMemo(
     () => [
@@ -153,6 +268,16 @@ export default function WatchPageClient({ video }: Props) {
           >
             View Channel
           </Button>
+          {accessToken && (
+            <Button
+              variant={following ? "contained" : "outlined"}
+              size="small"
+              onClick={handleFollow}
+              sx={{ textTransform: "none" }}
+            >
+              {following ? "Following" : "Follow"}
+            </Button>
+          )}
         </Stack>
         <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mb: 2 }} alignItems="center">
           {video.creator.monetizationEligible === true ? (
@@ -170,10 +295,20 @@ export default function WatchPageClient({ video }: Props) {
               completing payout verification.
             </Typography>
           )}
-          <Button variant="text" color="inherit">
-            + Watchlist
+          <Stack direction="row" alignItems="center" sx={{ ml: { xs: 0, sm: 1 } }}>
+            <IconButton onClick={handleLike} color={liked ? "primary" : "default"} aria-label="Like">
+              {liked ? <ThumbUpIcon /> : <ThumbUpOutlinedIcon />}
+            </IconButton>
+            <Typography variant="body2" sx={{ mr: 1 }}>{formatCount(likeCount)}</Typography>
+            <IconButton onClick={handleDislike} color={disliked ? "error" : "default"} aria-label="Dislike">
+              {disliked ? <ThumbDownIcon /> : <ThumbDownOutlinedIcon />}
+            </IconButton>
+            <Typography variant="body2">{formatCount(dislikeCount)}</Typography>
+          </Stack>
+          <Button variant="text" color="inherit" onClick={handleWatchlist}>
+            {onWatchlist ? "\u2713 SAVED" : "+ WATCHLIST"}
           </Button>
-          <Button variant="text" color="inherit">
+          <Button variant="text" color="inherit" onClick={handleShare}>
             Share
           </Button>
         </Stack>
@@ -252,6 +387,12 @@ export default function WatchPageClient({ video }: Props) {
         targetType="video"
         targetId={video.id}
         title="Report video"
+      />
+      <Snackbar
+        open={!!snackMsg}
+        autoHideDuration={3000}
+        onClose={() => setSnackMsg("")}
+        message={snackMsg}
       />
     </Box>
   );

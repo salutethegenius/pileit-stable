@@ -1,15 +1,33 @@
+import os
 import uuid
 
 import httpx
+from fastapi import HTTPException
 
 from app.config import settings
+
+_PAYMENT_UNAVAILABLE = "Payment service unavailable"
+
+
+def is_payment_stub_mode() -> bool:
+    key = (settings.kemispay_secret_key or "").strip()
+    return not key or key.startswith("sk_test_stub")
+
+
+def assert_live_payments_or_503() -> None:
+    """
+    On Railway, refuse monetary API flows when KemisPay is not configured with a live key.
+    Local/dev (no RAILWAY_ENVIRONMENT) may keep stub mode.
+    """
+    if not (os.getenv("RAILWAY_ENVIRONMENT") or "").strip():
+        return
+    if is_payment_stub_mode():
+        raise HTTPException(status_code=503, detail=_PAYMENT_UNAVAILABLE)
 
 
 async def charge_amount(amount_cents: int, metadata: dict) -> str:
     """One-time charge. Stub returns fake tx when no real API."""
-    if not settings.kemispay_secret_key or settings.kemispay_secret_key.startswith(
-        "sk_test_stub"
-    ):
+    if is_payment_stub_mode():
         return f"kpay_stub_{uuid.uuid4().hex[:16]}"
     async with httpx.AsyncClient(timeout=30) as client:
         r = await client.post(
@@ -25,7 +43,7 @@ async def charge_amount(amount_cents: int, metadata: dict) -> str:
 async def create_subscription_recurring(
     customer_ref: str, amount: float, creator_id: str
 ) -> str:
-    if settings.kemispay_secret_key.startswith("sk_test_stub"):
+    if is_payment_stub_mode():
         return f"kpay_sub_{uuid.uuid4().hex[:12]}"
     async with httpx.AsyncClient(timeout=30) as client:
         r = await client.post(

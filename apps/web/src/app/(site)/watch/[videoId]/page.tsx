@@ -12,12 +12,13 @@ import {
 } from "@/lib/seoMetadata";
 import { getDefaultOgImageUrl, getSiteUrl } from "@/lib/site";
 
-type Props = { params: { videoId: string } };
+type Props = { params: Promise<{ videoId: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { videoId } = await params;
   const video =
-    (await fetchVideoById(params.videoId)) ??
-    (allowMockCatalogFallback() ? getVideoById(params.videoId) : null);
+    (await fetchVideoById(videoId)) ??
+    (allowMockCatalogFallback() ? getVideoById(videoId) : null);
   if (!video) {
     return {
       title: "Video not found",
@@ -64,9 +65,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function WatchPage({ params }: Props) {
+  const { videoId } = await params;
   const video =
-    (await fetchVideoById(params.videoId)) ??
-    (allowMockCatalogFallback() ? getVideoById(params.videoId) : null);
+    (await fetchVideoById(videoId)) ??
+    (allowMockCatalogFallback() ? getVideoById(videoId) : null);
   if (!video) notFound();
   const site = getSiteUrl();
   const videoPageUrl = `${site}/watch/${encodeURIComponent(video.id)}`;
