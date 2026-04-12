@@ -1,3 +1,4 @@
+import logging
 import mimetypes
 from datetime import datetime, timezone
 from pathlib import Path
@@ -13,6 +14,8 @@ from app.config import settings
 from app.database import get_db
 from app import models
 from app.deps import require_admin
+from app.mux_client import mux_delete_live_stream
+from app.routers.videos import _cascade_delete_video_rows
 from app.security import hash_password
 from app.homepage_sections import (
     HOMEPAGE_SECTION_KEYS,
@@ -21,6 +24,118 @@ from app.homepage_sections import (
 )
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+logger = logging.getLogger(__name__)
+
+
+def _delete_pile_comments_authored_by_user(db: Session, user_id: str) -> None:
+    """Remove pile comments by this user; leaf-first so threads unwind safely."""
+    while True:
+        mine = (
+            db.query(models.PileComment.id)
+            .filter(models.PileComment.user_id == user_id)
+            .all()
+        )
+        ids = [row[0] for row in mine]
+        if not ids:
+            break
+        leaf_id = None
+        for cid in ids:
+            child_count = (
+                db.query(models.PileComment)
+                .filter(models.PileComment.parent_id == cid)
+                .count()
+            )
+            if child_count == 0:
+                leaf_id = cid
+                break
+        if leaf_id is None:
+            leaf_id = ids[0]
+        db.query(models.PileComment).filter(models.PileComment.id == leaf_id).delete(
+            synchronize_session=False
+        )
+        db.flush()
+
+
+def _purge_user_account(db: Session, user_id: str) -> None:
+    """Delete dependent rows then the user. Caller enforces policy (self, admin, etc.)."""
+    db.query(models.CreatorProfile).filter(
+        models.CreatorProfile.claimed_by_user_id == user_id
+    ).update({"claimed_by_user_id": None}, synchronize_session=False)
+
+    videos = (
+        db.query(models.Video).filter(models.Video.creator_id == user_id).all()
+    )
+    for v in videos:
+        if v.mux_live_stream_id:
+            try:
+                mux_delete_live_stream(v.mux_live_stream_id)
+            except Exception:
+                logger.warning(
+                    "Could not delete Mux live stream %s; continuing user delete",
+                    v.mux_live_stream_id,
+                    exc_info=True,
+                )
+        _cascade_delete_video_rows(db, v.id)
+        db.delete(v)
+    db.flush()
+
+    db.query(models.StoreProduct).filter(
+        models.StoreProduct.creator_id == user_id
+    ).delete(synchronize_session=False)
+
+    prof = db.get(models.CreatorProfile, user_id)
+    if prof:
+        db.delete(prof)
+        db.flush()
+
+    db.query(models.CreatorApplication).filter(
+        models.CreatorApplication.user_id == user_id
+    ).delete(synchronize_session=False)
+
+    db.query(models.Subscription).filter(
+        (models.Subscription.subscriber_id == user_id)
+        | (models.Subscription.creator_id == user_id)
+    ).delete(synchronize_session=False)
+
+    db.query(models.Tip).filter(
+        (models.Tip.sender_id == user_id) | (models.Tip.creator_id == user_id)
+    ).delete(synchronize_session=False)
+
+    _delete_pile_comments_authored_by_user(db, user_id)
+
+    db.query(models.LiveChatMessage).filter(
+        models.LiveChatMessage.user_id == user_id
+    ).delete(synchronize_session=False)
+
+    db.query(models.VideoReaction).filter(
+        models.VideoReaction.user_id == user_id
+    ).delete(synchronize_session=False)
+
+    db.query(models.Watchlist).filter(
+        models.Watchlist.user_id == user_id
+    ).delete(synchronize_session=False)
+
+    db.query(models.CreatorFollow).filter(
+        (models.CreatorFollow.follower_id == user_id)
+        | (models.CreatorFollow.creator_id == user_id)
+    ).delete(synchronize_session=False)
+
+    db.query(models.ContentReport).filter(
+        models.ContentReport.reporter_id == user_id
+    ).delete(synchronize_session=False)
+    db.query(models.ContentReport).filter(
+        models.ContentReport.reviewed_by == user_id
+    ).update({"reviewed_by": None}, synchronize_session=False)
+
+    db.query(models.CreatorAccountDeletionLog).filter(
+        (models.CreatorAccountDeletionLog.user_id == user_id)
+        | (models.CreatorAccountDeletionLog.deleted_by == user_id)
+        | (models.CreatorAccountDeletionLog.restored_by == user_id)
+    ).delete(synchronize_session=False)
+
+    u = db.get(models.User, user_id)
+    if u:
+        db.delete(u)
 
 
 class HomepageSectionsBody(BaseModel):
@@ -366,6 +481,12 @@ class UserPasswordResetBody(BaseModel):
     password: str = Field(..., min_length=8, max_length=128)
 
 
+class AdminDeleteUserBody(BaseModel):
+    """Must match the target user's email (case-insensitive) to confirm permanent deletion."""
+
+    confirm_email: str = Field(..., min_length=3, max_length=255)
+
+
 class CreatorDeleteBody(BaseModel):
     reason: str | None = Field(None, max_length=2000)
 
@@ -459,6 +580,31 @@ def admin_reset_user_password(
     if u.id == admin.id:
         raise HTTPException(400, "Use profile flow to change your own password")
     u.password_hash = hash_password(body.password)
+    db.commit()
+    return {"ok": True}
+
+
+@router.delete("/users/{user_id}")
+def admin_delete_user(
+    user_id: str,
+    body: AdminDeleteUserBody,
+    admin: Annotated[models.User, Depends(require_admin)],
+    db: Session = Depends(get_db),
+):
+    """
+    Permanently delete a user and related rows (videos, tips, follows, etc.).
+    Admin accounts cannot be removed via this endpoint.
+    """
+    if user_id == admin.id:
+        raise HTTPException(400, "Cannot delete your own account")
+    u = db.get(models.User, user_id)
+    if not u:
+        raise HTTPException(404, "Not found")
+    if u.account_type == "admin":
+        raise HTTPException(400, "Cannot delete admin accounts")
+    if (body.confirm_email or "").strip().lower() != (u.email or "").strip().lower():
+        raise HTTPException(400, "Email confirmation does not match this user")
+    _purge_user_account(db, user_id)
     db.commit()
     return {"ok": True}
 

@@ -9,6 +9,7 @@ import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
+import TableContainer from "@mui/material/TableContainer";
 import Button from "@mui/material/Button";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
@@ -24,7 +25,7 @@ import DialogContent from "@mui/material/DialogContent";
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
 import { useAuth } from "@/providers/AuthProvider";
-import { apiFetch, getApiBase } from "@/lib/api";
+import { apiFetch, formatApiErrorMessage, getApiBase } from "@/lib/api";
 import { PILEIT_THEME } from "@/theme/theme";
 import { formatBsd } from "@/utils/currency";
 import {
@@ -34,6 +35,15 @@ import {
   mergeHomepageSections,
   type HomepageSectionsState,
 } from "@/lib/homepageSections";
+
+/** Horizontal scroll on small screens so action columns stay reachable. */
+const adminTableContainerSx = {
+  mb: 4,
+  overflowX: "auto" as const,
+  WebkitOverflowScrolling: "touch" as const,
+  bgcolor: "#2a2a2a",
+  border: `1px solid ${PILEIT_THEME.border}`,
+};
 
 type ChannelRow = { label: string; url: string };
 
@@ -407,6 +417,41 @@ export default function AdminPageClient() {
     window.alert(`Password updated for ${email}.`);
   };
 
+  const deleteUser = async (userId: string, email: string, accountType: string) => {
+    if (!accessToken) return;
+    if (userId === user?.id) {
+      window.alert("You cannot delete your own account.");
+      return;
+    }
+    if (accountType === "admin") {
+      window.alert("Admin accounts cannot be deleted from this panel.");
+      return;
+    }
+    const ok = window.confirm(
+      `Permanently delete user ${email}?\n\nThis removes their account, videos, tips, subscriptions, and other related data. This cannot be undone.`
+    );
+    if (!ok) return;
+    const typed = window.prompt(
+      `Type this user's email exactly to confirm:\n${email}`
+    );
+    if (typed === null) return;
+    if (typed.trim().toLowerCase() !== email.trim().toLowerCase()) {
+      window.alert("Email did not match. No changes made.");
+      return;
+    }
+    try {
+      await apiFetch(`/admin/users/${userId}`, {
+        method: "DELETE",
+        accessToken,
+        body: JSON.stringify({ confirm_email: typed.trim() }),
+      });
+      window.alert(`User ${email} was deleted.`);
+      load();
+    } catch (e) {
+      window.alert(formatApiErrorMessage(e));
+    }
+  };
+
   const resolveModReport = async (
     reportId: string,
     action: "acknowledge" | "unpublish_video" | "delete_pile" | "delete_chat"
@@ -532,67 +577,73 @@ export default function AdminPageClient() {
       <Typography component="h2" variant="h6" sx={{ mt: 3, mb: 1 }}>
         Creator applications
       </Typography>
-      <Table size="small" sx={{ mb: 4 }}>
-        <TableHead>
-          <TableRow>
-            <TableCell>Name</TableCell>
-            <TableCell>Email</TableCell>
-            <TableCell>Category</TableCell>
-            <TableCell>Submitted</TableCell>
-            <TableCell>Actions</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {apps.flatMap((a) => [
-            <TableRow key={a.id}>
-              <TableCell>{a.display_name}</TableCell>
-              <TableCell>{a.email}</TableCell>
-              <TableCell>{a.primary_category || "—"}</TableCell>
-              <TableCell>{a.submitted_at?.slice(0, 10) || "—"}</TableCell>
-              <TableCell>
-                <Button size="small" onClick={() => void approve(a.id)}>
-                  Approve
-                </Button>
-                <Button size="small" color="inherit" onClick={() => void decline(a.id)}>
-                  Decline
-                </Button>
-              </TableCell>
-            </TableRow>,
-            <TableRow key={`${a.id}-detail`}>
-              <TableCell colSpan={5} sx={{ borderTop: 0, pt: 0, pb: 2 }}>
-                <Typography variant="caption" color="text.secondary" display="block">
-                  Channels
-                </Typography>
-                {(a.channels?.length ? a.channels : []).map((c, i) => (
-                  <Typography key={i} variant="body2">
-                    {c.label}:{" "}
-                    <Link href={c.url} target="_blank" rel="noopener noreferrer">
-                      {c.url}
-                    </Link>
+      <TableContainer
+        component={Paper}
+        aria-label="Creator applications"
+        sx={adminTableContainerSx}
+      >
+        <Table size="small" sx={{ minWidth: 720 }}>
+          <TableHead>
+            <TableRow>
+              <TableCell>Name</TableCell>
+              <TableCell>Email</TableCell>
+              <TableCell>Category</TableCell>
+              <TableCell>Submitted</TableCell>
+              <TableCell>Actions</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {apps.flatMap((a) => [
+              <TableRow key={a.id}>
+                <TableCell>{a.display_name}</TableCell>
+                <TableCell>{a.email}</TableCell>
+                <TableCell>{a.primary_category || "—"}</TableCell>
+                <TableCell>{a.submitted_at?.slice(0, 10) || "—"}</TableCell>
+                <TableCell>
+                  <Button size="small" onClick={() => void approve(a.id)}>
+                    Approve
+                  </Button>
+                  <Button size="small" color="inherit" onClick={() => void decline(a.id)}>
+                    Decline
+                  </Button>
+                </TableCell>
+              </TableRow>,
+              <TableRow key={`${a.id}-detail`}>
+                <TableCell colSpan={5} sx={{ borderTop: 0, pt: 0, pb: 2 }}>
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    Channels
                   </Typography>
-                ))}
-                {!a.channels?.length && a.social_links && (
+                  {(a.channels?.length ? a.channels : []).map((c, i) => (
+                    <Typography key={i} variant="body2">
+                      {c.label}:{" "}
+                      <Link href={c.url} target="_blank" rel="noopener noreferrer">
+                        {c.url}
+                      </Link>
+                    </Typography>
+                  ))}
+                  {!a.channels?.length && a.social_links && (
+                    <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
+                      {a.social_links}
+                    </Typography>
+                  )}
+                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
+                    Mission
+                  </Typography>
                   <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
-                    {a.social_links}
+                    {a.mission_text || "—"}
                   </Typography>
-                )}
-                <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
-                  Mission
-                </Typography>
-                <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
-                  {a.mission_text || "—"}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
-                  Content plan
-                </Typography>
-                <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
-                  {a.content_plan_text || "—"}
-                </Typography>
-              </TableCell>
-            </TableRow>,
-          ])}
-        </TableBody>
-      </Table>
+                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
+                    Content plan
+                  </Typography>
+                  <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
+                    {a.content_plan_text || "—"}
+                  </Typography>
+                </TableCell>
+              </TableRow>,
+            ])}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
       <Typography component="h2" variant="h6" sx={{ mt: 3, mb: 1 }}>
         Monetization / KYC (pending review)
@@ -601,162 +652,176 @@ export default function AdminPageClient() {
         Government ID and selfie on disk; payout via Cash n Go, Sun Cash, or other local
         processors. Approve only after manual verification.
       </Typography>
-      <Table size="small" sx={{ mb: 4 }}>
-        <TableHead>
-          <TableRow>
-            <TableCell>Creator</TableCell>
-            <TableCell>Email</TableCell>
-            <TableCell>Provider</TableCell>
-            <TableCell>Payout detail</TableCell>
-            <TableCell>Files</TableCell>
-            <TableCell>Actions</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {monPending.map((m) => (
-            <TableRow key={m.user_id}>
-              <TableCell>{m.display_name}</TableCell>
-              <TableCell>{m.email}</TableCell>
-              <TableCell>{m.payout_provider || "—"}</TableCell>
-              <TableCell sx={{ maxWidth: 200 }}>{m.payout_account_detail || "—"}</TableCell>
-              <TableCell>
-                {accessToken && (
-                  <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
-                    <Button
-                      size="small"
-                      onClick={() => void showKycPreview(m.user_id, "id_document")}
-                    >
-                      Preview ID
-                    </Button>
-                    <Button
-                      size="small"
-                      onClick={() => void showKycPreview(m.user_id, "selfie")}
-                    >
-                      Preview selfie
-                    </Button>
-                  </Stack>
-                )}
-              </TableCell>
-              <TableCell>
-                <Button size="small" onClick={() => void approveMon(m.user_id)}>
-                  Approve
-                </Button>
-                <Button size="small" color="inherit" onClick={() => void rejectMon(m.user_id)}>
-                  Reject
-                </Button>
-              </TableCell>
+      <TableContainer
+        component={Paper}
+        aria-label="Monetization and KYC pending review"
+        sx={adminTableContainerSx}
+      >
+        <Table size="small" sx={{ minWidth: 900 }}>
+          <TableHead>
+            <TableRow>
+              <TableCell>Creator</TableCell>
+              <TableCell>Email</TableCell>
+              <TableCell>Provider</TableCell>
+              <TableCell>Payout detail</TableCell>
+              <TableCell>Files</TableCell>
+              <TableCell>Actions</TableCell>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHead>
+          <TableBody>
+            {monPending.map((m) => (
+              <TableRow key={m.user_id}>
+                <TableCell>{m.display_name}</TableCell>
+                <TableCell>{m.email}</TableCell>
+                <TableCell>{m.payout_provider || "—"}</TableCell>
+                <TableCell sx={{ maxWidth: 200 }}>{m.payout_account_detail || "—"}</TableCell>
+                <TableCell>
+                  {accessToken && (
+                    <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+                      <Button
+                        size="small"
+                        onClick={() => void showKycPreview(m.user_id, "id_document")}
+                      >
+                        Preview ID
+                      </Button>
+                      <Button
+                        size="small"
+                        onClick={() => void showKycPreview(m.user_id, "selfie")}
+                      >
+                        Preview selfie
+                      </Button>
+                    </Stack>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <Button size="small" onClick={() => void approveMon(m.user_id)}>
+                    Approve
+                  </Button>
+                  <Button size="small" color="inherit" onClick={() => void rejectMon(m.user_id)}>
+                    Reject
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
       <Typography component="h2" variant="h6" sx={{ mt: 3, mb: 1 }}>
         Creators
       </Typography>
-      <Table size="small" sx={{ mb: 4 }}>
-        <TableHead>
-          <TableRow>
-            <TableCell>Display name</TableCell>
-            <TableCell>Handle</TableCell>
-            <TableCell>Email</TableCell>
-            <TableCell>Category</TableCell>
-            <TableCell>Verified</TableCell>
-            <TableCell>Monetized</TableCell>
-            <TableCell>Payout</TableCell>
-            <TableCell align="right">Videos</TableCell>
-            <TableCell align="right">Subscribers</TableCell>
-            <TableCell>Verified (blue badge)</TableCell>
-            <TableCell>Creator account</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {creators.map((c) => (
-            <TableRow key={c.id}>
-              <TableCell>{c.display_name}</TableCell>
-              <TableCell>@{c.handle}</TableCell>
-              <TableCell>{c.email}</TableCell>
-              <TableCell>{c.category || "—"}</TableCell>
-              <TableCell>{c.verified ? "Yes" : "No"}</TableCell>
-              <TableCell>{c.monetization_eligible ? "Yes" : "No"}</TableCell>
-              <TableCell>{c.payout_status || "—"}</TableCell>
-              <TableCell align="right">{c.video_count}</TableCell>
-              <TableCell align="right">{c.subscriber_count}</TableCell>
-              <TableCell>
-                <Stack direction="row" spacing={0.5} flexWrap="wrap">
-                  <Button
-                    size="small"
-                    disabled={c.verified}
-                    onClick={() => void setCreatorVerified(c.id, true)}
-                  >
-                    Grant
-                  </Button>
-                  <Button
-                    size="small"
-                    color="inherit"
-                    disabled={!c.verified}
-                    onClick={() => void setCreatorVerified(c.id, false)}
-                  >
-                    Revoke
-                  </Button>
-                </Stack>
-              </TableCell>
-              <TableCell>
-                <Button
-                  size="small"
-                  color="error"
-                  onClick={() => void deleteCreator(c.id, c.display_name)}
-                >
-                  Delete creator
-                </Button>
-              </TableCell>
+      <TableContainer component={Paper} aria-label="Creators" sx={adminTableContainerSx}>
+        <Table size="small" sx={{ minWidth: 1200 }}>
+          <TableHead>
+            <TableRow>
+              <TableCell>Display name</TableCell>
+              <TableCell>Handle</TableCell>
+              <TableCell>Email</TableCell>
+              <TableCell>Category</TableCell>
+              <TableCell>Verified</TableCell>
+              <TableCell>Monetized</TableCell>
+              <TableCell>Payout</TableCell>
+              <TableCell align="right">Videos</TableCell>
+              <TableCell align="right">Subscribers</TableCell>
+              <TableCell>Verified (blue badge)</TableCell>
+              <TableCell>Creator account</TableCell>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHead>
+          <TableBody>
+            {creators.map((c) => (
+              <TableRow key={c.id}>
+                <TableCell>{c.display_name}</TableCell>
+                <TableCell>@{c.handle}</TableCell>
+                <TableCell>{c.email}</TableCell>
+                <TableCell>{c.category || "—"}</TableCell>
+                <TableCell>{c.verified ? "Yes" : "No"}</TableCell>
+                <TableCell>{c.monetization_eligible ? "Yes" : "No"}</TableCell>
+                <TableCell>{c.payout_status || "—"}</TableCell>
+                <TableCell align="right">{c.video_count}</TableCell>
+                <TableCell align="right">{c.subscriber_count}</TableCell>
+                <TableCell>
+                  <Stack direction="row" spacing={0.5} flexWrap="wrap">
+                    <Button
+                      size="small"
+                      disabled={c.verified}
+                      onClick={() => void setCreatorVerified(c.id, true)}
+                    >
+                      Grant
+                    </Button>
+                    <Button
+                      size="small"
+                      color="inherit"
+                      disabled={!c.verified}
+                      onClick={() => void setCreatorVerified(c.id, false)}
+                    >
+                      Revoke
+                    </Button>
+                  </Stack>
+                </TableCell>
+                <TableCell>
+                  <Button
+                    size="small"
+                    color="error"
+                    onClick={() => void deleteCreator(c.id, c.display_name)}
+                  >
+                    Delete creator
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
       <Typography component="h2" variant="h6" sx={{ mt: 1, mb: 1 }}>
         Deleted creators (reversible)
       </Typography>
-      <Table size="small" sx={{ mb: 4 }}>
-        <TableHead>
-          <TableRow>
-            <TableCell>Name</TableCell>
-            <TableCell>Handle</TableCell>
-            <TableCell>Email</TableCell>
-            <TableCell>Deleted at</TableCell>
-            <TableCell>Reason</TableCell>
-            <TableCell>Actions</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {deletedCreators.length === 0 ? (
+      <TableContainer
+        component={Paper}
+        aria-label="Deleted creators"
+        sx={adminTableContainerSx}
+      >
+        <Table size="small" sx={{ minWidth: 720 }}>
+          <TableHead>
             <TableRow>
-              <TableCell colSpan={6}>
-                <Typography variant="body2" color="text.secondary">
-                  No deleted creators.
-                </Typography>
-              </TableCell>
+              <TableCell>Name</TableCell>
+              <TableCell>Handle</TableCell>
+              <TableCell>Email</TableCell>
+              <TableCell>Deleted at</TableCell>
+              <TableCell>Reason</TableCell>
+              <TableCell>Actions</TableCell>
             </TableRow>
-          ) : (
-            deletedCreators.map((d) => (
-              <TableRow key={d.log_id}>
-                <TableCell>{d.display_name}</TableCell>
-                <TableCell>@{d.handle || "—"}</TableCell>
-                <TableCell>{d.email}</TableCell>
-                <TableCell sx={{ whiteSpace: "nowrap" }}>
-                  {d.deleted_at ? new Date(d.deleted_at).toLocaleString() : "—"}
-                </TableCell>
-                <TableCell>{d.reason || "—"}</TableCell>
-                <TableCell>
-                  <Button size="small" onClick={() => void restoreCreator(d.user_id, d.display_name)}>
-                    Restore
-                  </Button>
+          </TableHead>
+          <TableBody>
+            {deletedCreators.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6}>
+                  <Typography variant="body2" color="text.secondary">
+                    No deleted creators.
+                  </Typography>
                 </TableCell>
               </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+            ) : (
+              deletedCreators.map((d) => (
+                <TableRow key={d.log_id}>
+                  <TableCell>{d.display_name}</TableCell>
+                  <TableCell>@{d.handle || "—"}</TableCell>
+                  <TableCell>{d.email}</TableCell>
+                  <TableCell sx={{ whiteSpace: "nowrap" }}>
+                    {d.deleted_at ? new Date(d.deleted_at).toLocaleString() : "—"}
+                  </TableCell>
+                  <TableCell>{d.reason || "—"}</TableCell>
+                  <TableCell>
+                    <Button size="small" onClick={() => void restoreCreator(d.user_id, d.display_name)}>
+                      Restore
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
       <Typography component="h2" variant="h6" sx={{ mb: 1 }}>
         Content moderation
@@ -765,134 +830,154 @@ export default function AdminPageClient() {
         Pending user reports for videos, pile comments, and live chat. Dismiss if not actionable;
         acknowledge to close without removing content; use remove actions to unpublish or delete.
       </Typography>
-      <Table size="small" sx={{ mb: 4 }}>
-        <TableHead>
-          <TableRow>
-            <TableCell>Submitted</TableCell>
-            <TableCell>Reporter</TableCell>
-            <TableCell>Target</TableCell>
-            <TableCell>Reason</TableCell>
-            <TableCell>Context</TableCell>
-            <TableCell>Details</TableCell>
-            <TableCell>Actions</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {modReports.length === 0 ? (
+      <TableContainer
+        component={Paper}
+        aria-label="Content moderation reports"
+        sx={adminTableContainerSx}
+      >
+        <Table size="small" sx={{ minWidth: 1000 }}>
+          <TableHead>
             <TableRow>
-              <TableCell colSpan={7}>
-                <Typography variant="body2" color="text.secondary">
-                  No pending reports.
-                </Typography>
-              </TableCell>
+              <TableCell>Submitted</TableCell>
+              <TableCell>Reporter</TableCell>
+              <TableCell>Target</TableCell>
+              <TableCell>Reason</TableCell>
+              <TableCell>Context</TableCell>
+              <TableCell>Details</TableCell>
+              <TableCell>Actions</TableCell>
             </TableRow>
-          ) : (
-            modReports.map((r) => (
-              <TableRow key={r.id}>
-                <TableCell sx={{ whiteSpace: "nowrap" }}>
-                  {new Date(r.created_at).toLocaleString()}
-                </TableCell>
-                <TableCell>
-                  {r.reporter_display_name}
-                  <Typography variant="caption" display="block" color="text.secondary">
-                    {r.reporter_email}
+          </TableHead>
+          <TableBody>
+            {modReports.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7}>
+                  <Typography variant="body2" color="text.secondary">
+                    No pending reports.
                   </Typography>
-                </TableCell>
-                <TableCell>
-                  {r.target_type}
-                  <Typography variant="caption" display="block" color="text.secondary">
-                    {r.target_id.slice(0, 8)}…
-                  </Typography>
-                </TableCell>
-                <TableCell>{r.reason}</TableCell>
-                <TableCell sx={{ maxWidth: 280 }}>
-                  <Typography variant="body2" sx={{ wordBreak: "break-word" }}>
-                    {modPreview(r)}
-                  </Typography>
-                </TableCell>
-                <TableCell sx={{ maxWidth: 200 }}>
-                  <Typography variant="body2" color="text.secondary" sx={{ wordBreak: "break-word" }}>
-                    {r.details || "—"}
-                  </Typography>
-                </TableCell>
-                <TableCell>
-                  <Stack direction="column" spacing={0.5} alignItems="flex-start">
-                    <Button size="small" onClick={() => void dismissModReport(r.id)}>
-                      Dismiss
-                    </Button>
-                    <Button
-                      size="small"
-                      color="secondary"
-                      onClick={() => void resolveModReport(r.id, "acknowledge")}
-                    >
-                      Acknowledge
-                    </Button>
-                    {r.target_type === "video" && (
-                      <Button
-                        size="small"
-                        color="warning"
-                        onClick={() => void resolveModReport(r.id, "unpublish_video")}
-                      >
-                        Unpublish video
-                      </Button>
-                    )}
-                    {r.target_type === "pile_comment" && (
-                      <Button
-                        size="small"
-                        color="warning"
-                        onClick={() => void resolveModReport(r.id, "delete_pile")}
-                      >
-                        Delete comment
-                      </Button>
-                    )}
-                    {r.target_type === "live_chat" && (
-                      <Button
-                        size="small"
-                        color="warning"
-                        onClick={() => void resolveModReport(r.id, "delete_chat")}
-                      >
-                        Delete message
-                      </Button>
-                    )}
-                  </Stack>
                 </TableCell>
               </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+            ) : (
+              modReports.map((r) => (
+                <TableRow key={r.id}>
+                  <TableCell sx={{ whiteSpace: "nowrap" }}>
+                    {new Date(r.created_at).toLocaleString()}
+                  </TableCell>
+                  <TableCell>
+                    {r.reporter_display_name}
+                    <Typography variant="caption" display="block" color="text.secondary">
+                      {r.reporter_email}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    {r.target_type}
+                    <Typography variant="caption" display="block" color="text.secondary">
+                      {r.target_id.slice(0, 8)}…
+                    </Typography>
+                  </TableCell>
+                  <TableCell>{r.reason}</TableCell>
+                  <TableCell sx={{ maxWidth: 280 }}>
+                    <Typography variant="body2" sx={{ wordBreak: "break-word" }}>
+                      {modPreview(r)}
+                    </Typography>
+                  </TableCell>
+                  <TableCell sx={{ maxWidth: 200 }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ wordBreak: "break-word" }}>
+                      {r.details || "—"}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Stack direction="column" spacing={0.5} alignItems="flex-start">
+                      <Button size="small" onClick={() => void dismissModReport(r.id)}>
+                        Dismiss
+                      </Button>
+                      <Button
+                        size="small"
+                        color="secondary"
+                        onClick={() => void resolveModReport(r.id, "acknowledge")}
+                      >
+                        Acknowledge
+                      </Button>
+                      {r.target_type === "video" && (
+                        <Button
+                          size="small"
+                          color="warning"
+                          onClick={() => void resolveModReport(r.id, "unpublish_video")}
+                        >
+                          Unpublish video
+                        </Button>
+                      )}
+                      {r.target_type === "pile_comment" && (
+                        <Button
+                          size="small"
+                          color="warning"
+                          onClick={() => void resolveModReport(r.id, "delete_pile")}
+                        >
+                          Delete comment
+                        </Button>
+                      )}
+                      {r.target_type === "live_chat" && (
+                        <Button
+                          size="small"
+                          color="warning"
+                          onClick={() => void resolveModReport(r.id, "delete_chat")}
+                        >
+                          Delete message
+                        </Button>
+                      )}
+                    </Stack>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
       <Typography component="h2" variant="h6" sx={{ mb: 1 }}>
         Users
       </Typography>
-      <Table size="small">
-        <TableHead>
-          <TableRow>
-            <TableCell>Email</TableCell>
-            <TableCell>Name</TableCell>
-            <TableCell>Type</TableCell>
-            <TableCell>Actions</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {users.map((u) => (
-            <TableRow key={u.id}>
-              <TableCell>{u.email}</TableCell>
-              <TableCell>{u.display_name}</TableCell>
-              <TableCell>{u.account_type}</TableCell>
-              <TableCell>
-                <Button
-                  size="small"
-                  onClick={() => void resetUserPassword(u.id, u.email)}
-                  sx={{ textTransform: "none" }}
-                >
-                  Reset password
-                </Button>
-              </TableCell>
+      <TableContainer component={Paper} aria-label="Users" sx={adminTableContainerSx}>
+        <Table size="small" sx={{ minWidth: 720 }}>
+          <TableHead>
+            <TableRow>
+              <TableCell>Email</TableCell>
+              <TableCell>Name</TableCell>
+              <TableCell>Type</TableCell>
+              <TableCell>Actions</TableCell>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHead>
+          <TableBody>
+            {users.map((u) => (
+              <TableRow key={u.id}>
+                <TableCell>{u.email}</TableCell>
+                <TableCell>{u.display_name}</TableCell>
+                <TableCell>{u.account_type}</TableCell>
+                <TableCell>
+                  <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+                    <Button
+                      size="small"
+                      onClick={() => void resetUserPassword(u.id, u.email)}
+                      sx={{ textTransform: "none" }}
+                    >
+                      Reset password
+                    </Button>
+                    {u.account_type !== "admin" && u.id !== user.id ? (
+                      <Button
+                        size="small"
+                        color="error"
+                        onClick={() => void deleteUser(u.id, u.email, u.account_type)}
+                        sx={{ textTransform: "none" }}
+                      >
+                        Delete user
+                      </Button>
+                    ) : null}
+                  </Stack>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
       <Dialog
         open={Boolean(kycPreview)}
