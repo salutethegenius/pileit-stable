@@ -82,6 +82,37 @@ def mux_create_direct_upload(*, cors_origin: str | None) -> dict:
     return data if isinstance(data, dict) else {}
 
 
+def mux_create_asset_from_url(url: str, *, passthrough: str | None = None) -> dict:
+    """
+    Create a Mux asset by URL ingest (server-to-server pull). Used by the social-import
+    flow: Meta hands us a short-lived signed URL, Mux fetches it, then the asset moves
+    through the same `video.asset.ready` webhook the direct-upload flow ends in.
+
+    Returns Mux `data` subset: id (asset id), status, playback_ids (may be empty initially).
+    """
+    auth = mux_credentials()
+    body: dict = {
+        "input": [{"url": url}],
+        "playback_policy": ["public"],
+        "encoding_tier": "smart",
+    }
+    if passthrough and passthrough.strip():
+        # Mux echoes passthrough on every webhook event for this asset — convenient for
+        # mapping asset events back to our Video row.
+        body["passthrough"] = passthrough.strip()[:255]
+    with httpx.Client(auth=auth, timeout=60.0) as client:
+        r = client.post(f"{MUX_API_BASE}/assets", json=body)
+    if not r.is_success:
+        _mux_http_error(r)
+    try:
+        payload = r.json()
+    except ValueError:
+        logger.warning("Video upload provider returned invalid JSON (create asset)")
+        raise HTTPException(status_code=502, detail=_MSG_UPLOAD_FAILED)
+    data = payload.get("data") if isinstance(payload, dict) else None
+    return data if isinstance(data, dict) else {}
+
+
 def mux_get_upload(upload_id: str) -> dict:
     auth = mux_credentials()
     with httpx.Client(auth=auth, timeout=60.0) as client:
