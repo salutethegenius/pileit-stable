@@ -37,12 +37,19 @@ class Settings(BaseSettings):
     # Absolute API URL for claim verification emails / logs (no trailing slash)
     api_public_url: str = "http://127.0.0.1:8000"
     # Meta / Instagram claim verification (optional until wired in production)
+    meta_app_id: str = ""
     meta_app_secret: str = ""
     meta_instagram_access_token: str = ""
     meta_instagram_business_account_id: str = ""
     meta_webhook_verify_token: str = ""
     # Instagram username shown in “DM @…” instructions (no @)
     pileit_instagram_username: str = "PileItOfficial"
+    # Meta Login (Facebook OAuth) for the "Import from Facebook" flow.
+    # Redirect URI must exactly match the one registered in the Meta app dashboard.
+    meta_oauth_redirect_uri: str = ""
+    # Fernet key (urlsafe base64, 32 bytes) used to encrypt OAuth tokens at rest in
+    # user_social_accounts. Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    meta_token_encryption_key: str = ""
     # Mux Video — Direct Upload (browser → signed URL) + Live Streams.
     mux_token_id: str = ""
     mux_token_secret: str = ""

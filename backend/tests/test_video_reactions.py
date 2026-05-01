@@ -63,6 +63,10 @@ def _ensure_video():
 
 @pytest.fixture(autouse=True)
 def _setup_teardown():
+    # Other test files set their own dependency overrides at module-import time;
+    # rebind ours per test so the full suite is order-independent.
+    app.dependency_overrides[get_current_user] = _override_current_user
+    app.dependency_overrides[get_current_user_optional] = _override_current_user_optional
     _ensure_video()
     yield
     db = SessionLocal()

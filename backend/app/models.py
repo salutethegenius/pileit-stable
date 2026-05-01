@@ -155,6 +155,15 @@ class Video(Base):
     __table_args__ = (
         Index("ix_videos_creator_id", "creator_id"),
         Index("ix_videos_status_created", "status", "created_at"),
+        # NULLs are treated as distinct on both Postgres and SQLite, so native uploads
+        # (import_source IS NULL) are unaffected; the constraint only blocks re-imports
+        # of the same external item by the same creator.
+        UniqueConstraint(
+            "creator_id",
+            "import_source",
+            "import_external_id",
+            name="uq_video_import_dedupe",
+        ),
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
@@ -164,6 +173,8 @@ class Video(Base):
     video_url: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
     playback_id: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
     mux_upload_id: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    # Set when the asset is created via URL ingest (no upload session); enables webhook lookups.
+    mux_asset_id: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
     mux_pending_publish: Mapped[bool] = mapped_column(Boolean, default=False)
     # Mux Live: stream_source vod | mux_live; mux_live_stream_id + mux_live_status from Mux API
     stream_source: Mapped[str] = mapped_column(String(16), default="vod")
@@ -179,6 +190,11 @@ class Video(Base):
     dislike_count: Mapped[int] = mapped_column(Integer, default=0)
     tip_total: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0"))
     isrc: Mapped[Optional[str]] = mapped_column(String(12), nullable=True)
+    # Where the video originated; null for native uploads.
+    import_source: Mapped[Optional[str]] = mapped_column(
+        String(32), nullable=True
+    )  # facebook | instagram | None
+    import_external_id: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=datetime.utcnow
     )
@@ -389,6 +405,39 @@ class RevokedToken(Base):
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=datetime.utcnow
+    )
+
+
+class UserSocialAccount(Base):
+    """Per-creator OAuth link to an external social provider (currently Meta only).
+
+    Tokens are stored as Fernet ciphertext (see app.services.secrets); decrypt only when
+    calling the provider API. `pages_enc` holds a JSON list of FB Pages with their own
+    long-lived page tokens (and optional linked IG business account id).
+    """
+
+    __tablename__ = "user_social_accounts"
+    __table_args__ = (
+        UniqueConstraint("user_id", "provider", name="uq_user_social_provider"),
+        Index("ix_user_social_accounts_user", "user_id"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    provider: Mapped[str] = mapped_column(String(32), nullable=False)  # meta
+    external_user_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    user_token_enc: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    pages_enc: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    connected_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow
+    )
+    last_refreshed_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    expires_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
     )
 
 

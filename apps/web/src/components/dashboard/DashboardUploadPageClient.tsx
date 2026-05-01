@@ -19,6 +19,7 @@ import { apiFetch, ApiError } from "@/lib/api";
 import VideoPlayer from "@/components/VideoPlayer";
 import PileItVideoUploadForm from "@/components/dashboard/PileItVideoUploadForm";
 import DashboardGoLiveMuxPanel from "@/components/dashboard/DashboardGoLiveMuxPanel";
+import MetaImportPanel from "@/components/dashboard/MetaImportPanel";
 import { PILEIT_THEME } from "@/theme/theme";
 
 function uploadErrorMessage(err: unknown): string {
@@ -138,9 +139,19 @@ export default function DashboardUploadPageClient() {
           <Tab label="Upload to PileIt" id="upload-tab-file" sx={{ textTransform: "none" }} />
           <Tab label="Paste video ID" id="upload-tab-paste" sx={{ textTransform: "none" }} />
           <Tab label="Go live (Mux)" id="upload-tab-live" sx={{ textTransform: "none" }} />
+          <Tab
+            label="Import from Facebook"
+            id="upload-tab-import-meta"
+            sx={{ textTransform: "none" }}
+          />
         </Tabs>
 
         {uploadTab === 2 ? <DashboardGoLiveMuxPanel /> : null}
+
+        {uploadTab === 3 && accessToken ? <MetaImportPanel accessToken={accessToken} /> : null}
+        {uploadTab === 3 && !accessToken ? (
+          <Typography color="text.secondary">Loading session…</Typography>
+        ) : null}
 
         {uploadTab === 0 && accessToken ? (
           <PileItVideoUploadForm

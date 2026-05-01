@@ -50,6 +50,52 @@ def migrate_postgres(engine: Engine) -> None:
                 conn.execute(
                     text("ALTER TABLE videos ADD COLUMN dislike_count INTEGER NOT NULL DEFAULT 0")
                 )
+            if "import_source" not in cols:
+                conn.execute(
+                    text("ALTER TABLE videos ADD COLUMN import_source VARCHAR(32)")
+                )
+            if "import_external_id" not in cols:
+                conn.execute(
+                    text("ALTER TABLE videos ADD COLUMN import_external_id VARCHAR(128)")
+                )
+            if "mux_asset_id" not in cols:
+                conn.execute(
+                    text("ALTER TABLE videos ADD COLUMN mux_asset_id VARCHAR(128)")
+                )
+            existing_constraints = {
+                c["name"] for c in insp.get_unique_constraints("videos")
+            }
+            if "uq_video_import_dedupe" not in existing_constraints:
+                conn.execute(
+                    text(
+                        "ALTER TABLE videos ADD CONSTRAINT uq_video_import_dedupe "
+                        "UNIQUE (creator_id, import_source, import_external_id)"
+                    )
+                )
+
+        if not insp.has_table("user_social_accounts"):
+            conn.execute(
+                text(
+                    "CREATE TABLE user_social_accounts ("
+                    "  id VARCHAR(36) PRIMARY KEY,"
+                    "  user_id VARCHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE,"
+                    "  provider VARCHAR(32) NOT NULL,"
+                    "  external_user_id VARCHAR(64),"
+                    "  user_token_enc TEXT,"
+                    "  pages_enc TEXT,"
+                    "  connected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+                    "  last_refreshed_at TIMESTAMP,"
+                    "  expires_at TIMESTAMP,"
+                    "  CONSTRAINT uq_user_social_provider UNIQUE (user_id, provider)"
+                    ")"
+                )
+            )
+            conn.execute(
+                text(
+                    "CREATE INDEX ix_user_social_accounts_user "
+                    "ON user_social_accounts(user_id)"
+                )
+            )
 
         if not insp.has_table("video_reactions"):
             conn.execute(
@@ -251,6 +297,56 @@ def migrate_sqlite(engine: Engine) -> None:
                 conn.execute(
                     text("ALTER TABLE videos ADD COLUMN dislike_count INTEGER NOT NULL DEFAULT 0")
                 )
+            if "import_source" not in vcols:
+                conn.execute(
+                    text("ALTER TABLE videos ADD COLUMN import_source VARCHAR(32)")
+                )
+            if "import_external_id" not in vcols:
+                conn.execute(
+                    text("ALTER TABLE videos ADD COLUMN import_external_id VARCHAR(128)")
+                )
+            if "mux_asset_id" not in vcols:
+                conn.execute(
+                    text("ALTER TABLE videos ADD COLUMN mux_asset_id VARCHAR(128)")
+                )
+            # SQLite cannot ALTER TABLE ADD CONSTRAINT; the unique index is the equivalent.
+            existing_idx = {
+                row[1]
+                for row in conn.execute(
+                    text("PRAGMA index_list('videos')")
+                ).fetchall()
+            }
+            if "uq_video_import_dedupe" not in existing_idx:
+                conn.execute(
+                    text(
+                        "CREATE UNIQUE INDEX uq_video_import_dedupe "
+                        "ON videos(creator_id, import_source, import_external_id)"
+                    )
+                )
+
+        if not inspect(engine).has_table("user_social_accounts"):
+            conn.execute(
+                text(
+                    "CREATE TABLE user_social_accounts ("
+                    "  id VARCHAR(36) PRIMARY KEY,"
+                    "  user_id VARCHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE,"
+                    "  provider VARCHAR(32) NOT NULL,"
+                    "  external_user_id VARCHAR(64),"
+                    "  user_token_enc TEXT,"
+                    "  pages_enc TEXT,"
+                    "  connected_at DATETIME DEFAULT CURRENT_TIMESTAMP,"
+                    "  last_refreshed_at DATETIME,"
+                    "  expires_at DATETIME,"
+                    "  CONSTRAINT uq_user_social_provider UNIQUE (user_id, provider)"
+                    ")"
+                )
+            )
+            conn.execute(
+                text(
+                    "CREATE INDEX ix_user_social_accounts_user "
+                    "ON user_social_accounts(user_id)"
+                )
+            )
 
         if not inspect(engine).has_table("video_reactions"):
             conn.execute(
